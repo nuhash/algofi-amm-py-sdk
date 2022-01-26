@@ -28,8 +28,8 @@ class AlgofiAMMClient():
 
     def get_pool(self, pool_type, asset1_id, asset2_id):
         """Returns a :class:`Pool` object for given assets and pool_type
-        :param pool_type: 
-        :type pool_type: 
+        :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)
+        :type pool_type: :class:`PoolType`
         :param asset1_id: asset 1 id
         :type asset1_id: int
         :param asset2_id: asset 2 id

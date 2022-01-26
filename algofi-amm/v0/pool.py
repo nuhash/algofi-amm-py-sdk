@@ -12,8 +12,8 @@ class Pool():
         :type indexer_client: :class:`IndexerClient`
         :param historical_indexer_client: a :class:`IndexerClient` object for interacting with the network (historical state)
         :type historical_indexer_client: :class:`IndexerClient`
-        :param pool_type: 
-        :type pool_type: 
+        :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)
+        :type pool_type: :class:`PoolType`
         :param asset1_id: asset 1 id
         :type asset1_id: int
         :param asset2_id: asset 2 id
