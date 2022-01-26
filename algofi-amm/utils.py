@@ -1,5 +1,6 @@
 
 import algosdk
+from algosdk.future.transaction import PaymentTxn, AssetTransferTxn
 from base64 import b64decode
 
 
@@ -57,6 +58,8 @@ def get_account_balances(algod_client, address, filter_zero_balances=False):
     :type algod_client: :class:`AlgodClient`
     :param address: an account address
     :type address: str
+    :param filter_zero_balances: include assets with zero balance
+    :type filter_zero_balances: bool, optional
     :return: dictionary of balances for given account
     :rtype: dict
     """
@@ -79,3 +82,55 @@ def get_account_balances(algod_client, address, filter_zero_balances=False):
             balances[asset_id] = amount
 
     return balances
+
+
+def get_params(algod_client, fee=1000, flat_fee=True):
+    """Returns dictionary of global state for a given application
+    :param algod_client: :class:`AlgodClient` object for interacting with network
+    :type algod_client: :class:`AlgodClient`
+    :param fee: fee in microalgos
+    :type fee: int, optional
+    :param flat_fee: whether the specified fee is a flat fee
+    :type flat_fee: bool, optional
+    :return: :class:`SuggestedParams` object for sending transactions
+    :rtype: :class:`SuggestedParams`
+    """
+
+    params = algod_client.suggested_params()
+    params.fee = fee
+    params.flat_fee = flat_fee
+
+    return params
+
+
+def get_payment_txn(params, sender, receiver, amount, asset_id=1):
+    """Returns dictionary of global state for a given application
+    :param params: :class:`SuggestedParams` object for interacting with network
+    :type params: :class:`SuggestedParams`
+    :param sender: sender account address
+    :type sender: str
+    :param receiver: receiver account address
+    :type receiver: str
+    :param amount: amount of asset to send
+    :type amount: int
+    :param asset_id: asset id if AssetTransferTxn
+    :type asset_id: int
+    :return: :class:`PaymentTxn` or :class:`AssetTransferTxn` object for sending an asset
+    :rtype: :class:`PaymentTxn` or :class:`AssetTransferTxn`
+    """
+
+    if (asset_id == 1):
+        return PaymentTxn(
+            sender=sender,
+            sp=params,
+            receiver=receiver,
+            amt=amount,
+        )
+    else:
+        return AssetTransferTxn(
+            sender=sender,
+            sp=params,
+            receiver=receiver,
+            amt=amount,
+            index=asset_id
+        )
