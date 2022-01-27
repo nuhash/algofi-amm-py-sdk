@@ -4,7 +4,7 @@ import algosdk
 
 class AlgofiAMMClient():
 
-     def __init__(self, algod_client: AlgodClient, indexer_client: IndexerClient, historical_indexer_client: IndexerClient, user_address, chain):
+     def __init__(self, algod_client: AlgodClient, indexer_client: IndexerClient, historical_indexer_client: IndexerClient, user_address, network):
         """Constructor method for :class:`Client`
         :param algod_client: a :class:`AlgodClient` object for interacting with the network
         :type algod_client: :class:`AlgodClient`
@@ -14,8 +14,8 @@ class AlgofiAMMClient():
         :type historical_indexer_client: :class:`IndexerClient`
         :param user_address: user address
         :type user_address: str
-        :param chain: chain ("testnet" or "mainnet")
-        :type chain: str
+        :param network: network ("testnet" or "mainnet")
+        :type network: str
         :return: string representation of asset
         :rtype: str
         """
@@ -24,7 +24,7 @@ class AlgofiAMMClient():
         self.algod = algod_client
         self.indexer = indexer_client
         self.historical_indexer = historical_indexer_client
-        self.chain = chain
+        self.network = network
 
     def get_pool(self, pool_type, asset1_id, asset2_id):
         """Returns a :class:`Pool` object for given assets and pool_type
@@ -42,9 +42,9 @@ class AlgofiAMMClient():
             raise Exception("Invalid assets. must be different")
         
         if (asset1_id < asset2_id):
-            pool = Pool(self.algod_client, self.chain, pool_type, asset1_id, asset2_id)
+            pool = Pool(self.algod_client, self.network, pool_type, asset1_id, asset2_id)
         else:
-            pool = Pool(self.algod_client, self.chain, pool_type, asset2_id, asset1_id)
+            pool = Pool(self.algod_client, self.network, pool_type, asset2_id, asset1_id)
         
         return pool
 
@@ -76,7 +76,7 @@ class AlgofiAMMTestnetClient(AlgofiAMMClient):
             algod_client = AlgodClient('', 'https://api.testnet.algoexplorer.io', headers={'User-Agent': 'algosdk'})
         if indexer_client is None:
             indexer_client = IndexerClient("", "https://algoindexer.testnet.algoexplorerapi.io", headers={'User-Agent': 'algosdk'})
-        super().__init__(algod_client, indexer_client=indexer_client, historical_indexer_client=historical_indexer_client, user_address=user_address, chain="testnet")
+        super().__init__(algod_client, indexer_client=indexer_client, historical_indexer_client=historical_indexer_client, user_address=user_address, network="testnet")
 
 
 class AlgofiAMMMainnetClient(AlgofiAMMClient):
@@ -95,4 +95,4 @@ class AlgofiAMMMainnetClient(AlgofiAMMClient):
             algod_client = AlgodClient('', 'https://algoexplorerapi.io', headers={'User-Agent': 'algosdk'})
         if indexer_client is None:
             indexer_client = IndexerClient("", "https://algoindexer.algoexplorerapi.io", headers={'User-Agent': 'algosdk'})
-        super().__init__(algod_client, indexer_client=indexer_client, historical_indexer_client=historical_indexer_client, user_address=user_address, chain="mainnet")
+        super().__init__(algod_client, indexer_client=indexer_client, historical_indexer_client=historical_indexer_client, user_address=user_address, network="mainnet")

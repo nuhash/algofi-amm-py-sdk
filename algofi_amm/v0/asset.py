@@ -1,6 +1,12 @@
 
-import algosdk
 import pprint
+import algosdk
+from config import PoolType, PoolStatus, get_usdc_asset_id, get_stbl_asset_id
+
+# asset decimals
+ALGO_DECIMALS = 6
+USDC_DECIMALS = 6
+STBL_DECIMALS = 6
 
 class Asset():
 
@@ -34,4 +40,29 @@ class Asset():
                 "unit_name": self.unit_name, "url": self.url})
 
     def refresh_price(self):
-        pass
+        """Returns the dollar price of the asset with a simple matching algorithm
+        """
+
+        usdc_asset_id = get_usdc_asset_id(self.amm_client.network)
+        stbl_asset_id = get_stbl_asset_id(self.amm_client.network)
+
+        usdc_pool = self.amm_client.get_pool(PoolType.CONSTANT_PRODUCT_30BP_FEE, self.asset_id, usdc_asset_id)
+        if (usdc_pool == PoolStatus.ACTIVE):
+            self.price = usdc_pool.get_pool_price(self.asset_id) * (10**(self.decimals - USDC_DECIMALS))
+            return
+        
+        stbl_pool = self.amm_client.get_pool(PoolType.CONSTANT_PRODUCT_30BP_FEE, self.asset_id, stbl_asset_id)
+        if (stbl_pool.pool_status == PoolStatus.ACTIVE):
+            self.price = (stbl_pool.get_pool_price(self.asset_id)) * (10**(self.decimals - STBL_DECIMALS))
+            return
+        
+        algo_pool = self.amm_client.get_pool(PoolType.CONSTANT_PRODUCT_30BP_FEE, self.asset_id, ALGO_ASSET_ID)
+        if (algo_pool.pool_status == PoolStatus.ACTIVE):
+            price_in_algo = algo_pool.get_pool_price(self.asset_id) * (10**(self.decimals - ALGO_DECIMALS))
+            usdc_algo_pool = self.amm_client.get_pool(PoolType.CONSTANT_PRODUCT_30BP_FEE, usdc_asset_id, ALGO_ASSET_ID)
+            if (usdc_algo_pool.pool_status == PoolStatus.ACTIVE):
+                self.price = price_in_algo * usdc_algo_pool.get_pool_price(ALGO_ASSET_ID)
+                return
+
+        # unable to find price
+        self.price = 0

@@ -12,17 +12,20 @@ class Network(Enum):
     MAINNET = 0
     TESTNET = 1
 
+
 class PoolType(Enum):
     """Pool type enum
     """
     CONSTANT_PRODUCT_30BP_FEE = 0
     CONSTANT_PRODUCT_100BP_FEE = 1
 
+
 class PoolStatus(Enum):
     """Pool status enum
     """
     UNINITIALIZED = 0
     ACTIVE = 1
+
 
 # lookup functions
 def get_validator_index(network, pool_type):
@@ -39,7 +42,8 @@ def get_validator_index(network, pool_type):
         return 0
     else (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
         return 1
-    
+
+
 def get_approval_program_by_pool_type(pool_type):
     """Gets the approval program for a given pool type
     :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)
@@ -53,6 +57,7 @@ def get_approval_program_by_pool_type(pool_type):
     else (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
         return APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT
 
+
 def get_clear_state_program():
     """Gets the clear state program
     :return: clear state program bytecode as list of ints
@@ -60,6 +65,7 @@ def get_clear_state_program():
     """
 
     return CLEAR_STATE_PROGRAM
+
 
 def get_swap_fee(pool_type):
     """Gets the swap fee for a given pool type
@@ -74,6 +80,7 @@ def get_swap_fee(pool_type):
     else:
         return 0.01
 
+
 def get_usdc_asset_id(network):
     """Gets asset id of USDC for a given network
     :param network: network ("testnet" or "mainnet")
@@ -86,6 +93,7 @@ def get_usdc_asset_id(network):
         return 31566704
     else:
         return 51435943
+
 
 def get_stbl_asset_id(network):
     """Gets asset id of STBL for a given network

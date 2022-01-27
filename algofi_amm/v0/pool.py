@@ -3,14 +3,16 @@ import math
 import algosdk
 from algosdk.logic import get_application_address
 from algosdk.future.transaction import LogicSigAccount, LogicSigTransaction, OnComplete, StateSchema
-from config import PoolStatus
+from config import PoolStatus, get_validator_index, get_approval_program_by_pool_type, get_clear_state_program, get_swap_fee
+from balance_delta import BalanceDelta
+from logic_sig_generator import generate_logic_sig
 from ..contract_strings import algofi_manager_strings as manager_strings
 from ..contract_strings import algofi_pool_strings as pool_strings
 
 
 class Pool():
 
-    def __init__(self, algod_client, indexer_client, historical_indexer_client, chain, pool_type, asset1, asset2):
+    def __init__(self, algod_client, indexer_client, historical_indexer_client, network, pool_type, asset1, asset2):
         """Constructor method for :class:`Pool`
         :param algod_client: a :class:`AlgodClient` object for interacting with the network
         :type algod_client: :class:`AlgodClient`
@@ -32,12 +34,12 @@ class Pool():
         self.algod = algod_client
         self.indexer = indexer_client
         self.historical_indexer = historical_indexer_client
-        self.chain = chain
+        self.network = network
         self.asset1 = asset1
         self.asset2 = asset2
-        self.manager_application_id = get_manager_application_id(chain)
+        self.manager_application_id = get_manager_application_id(network)
         self.manager_address = get_application_address(self.manager_application_id)
-        self.validator_index = get_validator_index(chain, pool_type))
+        self.validator_index = get_validator_index(network, pool_type)
         self.logic_sig = LogicSigAccount(generate_logic_sig(asset1.asset_id, asset2.asset_id, self.manager_app_id, self.validator_index))
         self.swap_fee = get_swap_fee(pool_type)
 
