@@ -134,3 +134,50 @@ def get_payment_txn(params, sender, receiver, amount, asset_id=1):
             amt=amount,
             index=asset_id
         )
+
+class TransactionGroup:
+
+    def __init__(self, transactions):
+        """Constructor method for :class:`TransactionGroup` class
+        :param transactions: list of unsigned transactions
+        :type transactions: list
+        """
+        transactions = assign_group_id(transactions)
+        self.transactions = transactions
+        self.signed_transactions = [None for _ in self.transactions]
+
+    def sign_with_private_key(self, address, private_key):
+        """Signs the transactions with specified private key and saves to class state
+        :param address: account address of the user
+        :type address: string
+        :param private_key: private key of user
+        :type private_key: string
+        """
+        for i, txn in enumerate(self.transactions):
+            self.signed_transactions[i] = txn.sign(private_key)
+    
+    def sign_with_private_keys(self, private_keys):
+        """Signs the transactions with specified private key and saves to class state
+        :param private_key: private key of user
+        :type private_key: string
+        """
+        assert(len(private_keys) == len(self.transactions))
+        for i, txn in enumerate(self.transactions):
+            self.signed_transactions[i] = txn.sign(private_keys[i])
+        
+    def submit(self, algod, wait=False):
+        """Submits the signed transactions to network using the algod client
+        :param algod: algod client
+        :type algod: :class:`AlgodClient`
+        :param wait: wait for txn to complete, defaults to False
+        :type wait: boolean, optional
+        :return: dict of transaction id
+        :rtype: dict
+        """
+        try:
+            txid = algod.send_transactions(self.signed_transactions)
+        except AlgodHTTPError as e:
+            raise Exception(str(e))
+        if wait:
+            return wait_for_confirmation(algod, txid)
+        return {'txid': txid}
