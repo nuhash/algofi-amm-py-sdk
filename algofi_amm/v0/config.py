@@ -1,6 +1,6 @@
 
 from enum import Enum
-from approval_programs import APPROVAL_PROGRAM_30BP_CONSTANT_PRODUCT, APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT, CLEAR_STATE_PROGRAM
+from .approval_programs import APPROVAL_PROGRAM_30BP_CONSTANT_PRODUCT, APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT, CLEAR_STATE_PROGRAM
 
 # constants
 ALGO_ASSET_ID = 1
@@ -40,7 +40,7 @@ def get_validator_index(network, pool_type):
 
     if (pool_type == PoolType.CONSTANT_PRODUCT_30BP_FEE):
         return 0
-    else (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
+    elif (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
         return 1
 
 
@@ -54,7 +54,7 @@ def get_approval_program_by_pool_type(pool_type):
 
     if (pool_type == PoolType.CONSTANT_PRODUCT_30BP_FEE):
         return APPROVAL_PROGRAM_30BP_CONSTANT_PRODUCT
-    else (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
+    elif (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
         return APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT
 
 

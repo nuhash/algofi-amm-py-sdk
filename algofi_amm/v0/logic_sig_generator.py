@@ -13,7 +13,7 @@ def encode_varint(integer):
     :return: list of ints representing bytecode representation of TEAL Int
     :rtype: list
     """
-    buf = b''
+    buf = b""
     while True:
         towrite = integer & 0x7f
         integer >>= 7

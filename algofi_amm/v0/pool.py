@@ -3,9 +3,9 @@ import math
 import algosdk
 from algosdk.logic import get_application_address
 from algosdk.future.transaction import LogicSigAccount, LogicSigTransaction, OnComplete, StateSchema
-from config import PoolStatus, get_validator_index, get_approval_program_by_pool_type, get_clear_state_program, get_swap_fee
-from balance_delta import BalanceDelta
-from logic_sig_generator import generate_logic_sig
+from .config import PoolStatus, get_validator_index, get_approval_program_by_pool_type, get_clear_state_program, get_swap_fee
+from .balance_delta import BalanceDelta
+from .logic_sig_generator import generate_logic_sig
 from ..contract_strings import algofi_manager_strings as manager_strings
 from ..contract_strings import algofi_pool_strings as pool_strings
 
@@ -94,7 +94,7 @@ class Pool():
 
         if (asset_id == asset1.asset_id):
             return self.asset1_balance / self.asset2_balance
-        elif (asset_id == asset2.asset_id)
+        elif (asset_id == asset2.asset_id):
             return self.asset2_balance / self.asset1_balance
         else:
             raise Exception("Invalid asset id")
@@ -181,7 +181,7 @@ class Pool():
             sender=sender,
             sp=params,
             index=pool_app_id,
-            app_args=[bytes(pool_strings.initialize_pool, 'utf-8')],
+            app_args=[bytes(pool_strings.initialize_pool, "utf-8")],
             foreign_apps=[self.manager_application_id],
             foreign_assets=foreign_assets
         )
@@ -225,7 +225,7 @@ class Pool():
             sender=sender,
             sp=params,
             index=self.application_id,
-            app_args=[bytes(pool_strings.pool, 'utf-8'), int_to_bytes(maximum_slippage)],
+            app_args=[bytes(pool_strings.pool, "utf-8"), int_to_bytes(maximum_slippage)],
             foreign_apps=[self.manager_application_id],
             foreign_assets=[self.lp_asset_id]
         )
@@ -236,7 +236,7 @@ class Pool():
             sender=sender,
             sp=params,
             index=self.application_id,
-            app_args=[bytes(pool_strings.redeem_pool_asset1_residual, 'utf-8')],
+            app_args=[bytes(pool_strings.redeem_pool_asset1_residual, "utf-8")],
             foreign_assets=[self.asset1_id]
         )
 
@@ -245,7 +245,7 @@ class Pool():
             sender=sender,
             sp=params,
             index=self.application_id,
-            app_args=[bytes(pool_strings.redeem_pool_asset2_residual, 'utf-8')],
+            app_args=[bytes(pool_strings.redeem_pool_asset2_residual, "utf-8")],
             foreign_assets=[self.asset2_id]
         )
 
@@ -272,7 +272,7 @@ class Pool():
             sender=sender,
             sp=params,
             index=self.application_id,
-            app_args=[bytes(pool_strings.burn_asset1_out, 'utf-8')],
+            app_args=[bytes(pool_strings.burn_asset1_out, "utf-8")],
             foreign_assets=[self.asset1_id]
         )
 
@@ -281,7 +281,7 @@ class Pool():
             sender=sender,
             sp=params,
             index=self.application_id,
-            app_args=[bytes(pool_strings.burn_asset2_out, 'utf-8')],
+            app_args=[bytes(pool_strings.burn_asset2_out, "utf-8")],
             foreign_assets=[self.asset2_id]
         )
 
@@ -313,7 +313,7 @@ class Pool():
             sender=sender,
             sp=params,
             index=self.application_id,
-            app_args=[bytes(pool_strings.swap_exact_for, 'utf-8'), int_to_bytes(min_amount_to_receive)],
+            app_args=[bytes(pool_strings.swap_exact_for, "utf-8"), int_to_bytes(min_amount_to_receive)],
             foreign_apps=[self.manager_application_id],
             foreign_assets=foreign_assets
         )
@@ -346,7 +346,7 @@ class Pool():
             sender=sender,
             sp=params,
             index=self.application_id,
-            app_args=[bytes(pool_strings.swap_for_exact, 'utf-8'), int_to_bytes(amount_to_receive)],
+            app_args=[bytes(pool_strings.swap_for_exact, "utf-8"), int_to_bytes(amount_to_receive)],
             foreign_apps=[self.manager_application_id],
             foreign_assets=foreign_assets
         )
@@ -357,12 +357,12 @@ class Pool():
             sender=sender,
             sp=params,
             index=self.application_id,
-            app_args=[bytes(pool_strings.redeem_swap_residual, 'utf-8')],
+            app_args=[bytes(pool_strings.redeem_swap_residual, "utf-8")],
             foreign_apps=[self.manager_application_id],
             foreign_assets=[swap_in_asset]
         )
 
-        return TransactionGroup[txn0, txn1])
+        return TransactionGroup([txn0, txn1])
     
     def get_empty_pool_quote(self, asset1_pooled_amount, asset2_pooled_amount):
         """Get pool quote for an empty pool

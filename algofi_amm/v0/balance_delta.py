@@ -1,7 +1,4 @@
 
-import pool
-
-
 class BalanceDelta():
 
     def __init__(self, pool, asset1_delta, asset2_delta, lp_delta):

@@ -15,7 +15,7 @@ def get_application_global_state(algod_client, application_id):
     """
 
     application_info = algod_client.application_info(application_id)
-    application_global_state = application_info['params']['global-state']
+    application_global_state = application_info["params"]["global-state"]
     formatted_global_state = {}
     for keyvalue in application_global_state:
         key, value = keyvalue["key"], keyvalue["value"]
@@ -180,4 +180,4 @@ class TransactionGroup:
             raise Exception(str(e))
         if wait:
             return wait_for_confirmation(algod, txid)
-        return {'txid': txid}
+        return {"txid": txid}
