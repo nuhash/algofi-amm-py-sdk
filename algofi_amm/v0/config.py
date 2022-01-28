@@ -67,6 +67,20 @@ def get_clear_state_program():
     return CLEAR_STATE_PROGRAM
 
 
+def get_manager_application_id(network):
+    """Gets the manager application id for the given network
+    :param network: network ("testnet" or "mainnet")
+    :type network: str
+    :return: manager application id for the given network
+    :rtype: int
+    """
+
+    if (network == Network.MAINNET):
+        return 12345678
+    elif (network == Network.TESTNET):
+        return 66008735
+
+
 def get_swap_fee(pool_type):
     """Gets the swap fee for a given pool type
     :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)

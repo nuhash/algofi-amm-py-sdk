@@ -1,4 +1,6 @@
 
+from functools import reduce
+
 # pool factory logic sig template and indexes
 POOL_FACTORY_LOGIC_SIG_TEMPLATE_1 = [5, 32, 3]
 POOL_FACTORY_LOGIC_SIG_TEMPLATE_2 = [1, 34, 35, 12, 68, 49, 16, 129, 6, 18, 68, 49, 25, 36, 18, 68, 49, 24, 129]
@@ -49,6 +51,7 @@ def generate_logic_sig(asset1_id, asset2_id, manager_app_id, validator_index):
         list(encode_varint(validator_index)),
         POOL_FACTORY_LOGIC_SIG_TEMPLATE_4
     ]
-    result = list(reduce(lambda x,y: x+y, concat_array))
+    logic_sig_list_of_ints = list(reduce(lambda x,y: x+y, concat_array))
+    logic_sig_bytes = bytes(logic_sig_list_of_ints)
 
-    return result
+    return logic_sig_bytes

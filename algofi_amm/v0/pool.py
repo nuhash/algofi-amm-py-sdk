@@ -3,11 +3,12 @@ import math
 import algosdk
 from algosdk.logic import get_application_address
 from algosdk.future.transaction import LogicSigAccount, LogicSigTransaction, OnComplete, StateSchema
-from .config import PoolStatus, get_validator_index, get_approval_program_by_pool_type, get_clear_state_program, get_swap_fee
+from .config import PoolStatus, get_validator_index, get_approval_program_by_pool_type, get_clear_state_program, get_swap_fee, get_manager_application_id
 from .balance_delta import BalanceDelta
 from .logic_sig_generator import generate_logic_sig
 from ..contract_strings import algofi_manager_strings as manager_strings
 from ..contract_strings import algofi_pool_strings as pool_strings
+from ..utils import get_application_local_state, get_application_global_state
 
 
 class Pool():
@@ -40,7 +41,7 @@ class Pool():
         self.manager_application_id = get_manager_application_id(network)
         self.manager_address = get_application_address(self.manager_application_id)
         self.validator_index = get_validator_index(network, pool_type)
-        self.logic_sig = LogicSigAccount(generate_logic_sig(asset1.asset_id, asset2.asset_id, self.manager_app_id, self.validator_index))
+        self.logic_sig = LogicSigAccount(generate_logic_sig(asset1.asset_id, asset2.asset_id, self.manager_application_id, self.validator_index))
         self.swap_fee = get_swap_fee(pool_type)
 
         # get local state

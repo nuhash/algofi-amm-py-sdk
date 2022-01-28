@@ -2,6 +2,7 @@
 import algosdk
 from algosdk.v2client.algod import AlgodClient
 from algosdk.v2client.indexer import IndexerClient
+from .config import Network
 from .pool import Pool
 from .asset import Asset
 
@@ -46,11 +47,11 @@ class AlgofiAMMClient():
 
         asset1 = Asset(self, asset1_id)
         asset2 = Asset(self, asset2_id)
-        
+
         if (asset1_id < asset2_id):
-            pool = Pool(self.algod, self.network, pool_type, asset1, asset2)
+            pool = Pool(self.algod, self.indexer, self.historical_indexer, self.network, pool_type, asset1, asset2)
         else:
-            pool = Pool(self.algod, self.network, pool_type, asset2, asset1)
+            pool = Pool(self.algod, self.indexer, self.historical_indexer, self.network, pool_type, asset2, asset1)
         
         return pool
 
@@ -82,7 +83,7 @@ class AlgofiAMMTestnetClient(AlgofiAMMClient):
             algod_client = AlgodClient("", "https://api.testnet.algoexplorer.io", headers={"User-Agent": "algosdk"})
         if indexer_client is None:
             indexer_client = IndexerClient("", "https://algoindexer.testnet.algoexplorerapi.io", headers={"User-Agent": "algosdk"})
-        super().__init__(algod_client, indexer_client=indexer_client, historical_indexer_client=historical_indexer_client, user_address=user_address, network="testnet")
+        super().__init__(algod_client, indexer_client=indexer_client, historical_indexer_client=historical_indexer_client, user_address=user_address, network=Network.TESTNET)
 
 
 class AlgofiAMMMainnetClient(AlgofiAMMClient):
@@ -101,4 +102,4 @@ class AlgofiAMMMainnetClient(AlgofiAMMClient):
             algod_client = AlgodClient("", "https://algoexplorerapi.io", headers={"User-Agent": "algosdk"})
         if indexer_client is None:
             indexer_client = IndexerClient("", "https://algoindexer.algoexplorerapi.io", headers={"User-Agent": "algosdk"})
-        super().__init__(algod_client, indexer_client=indexer_client, historical_indexer_client=historical_indexer_client, user_address=user_address, network="mainnet")
+        super().__init__(algod_client, indexer_client=indexer_client, historical_indexer_client=historical_indexer_client, user_address=user_address, network=Network.MAINNET)
