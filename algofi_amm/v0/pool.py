@@ -2,13 +2,14 @@
 import math
 import algosdk
 from algosdk.logic import get_application_address
-from algosdk.future.transaction import LogicSigAccount, LogicSigTransaction, OnComplete, StateSchema
+from algosdk.future.transaction import LogicSigAccount, LogicSigTransaction, OnComplete, StateSchema, ApplicationCreateTxn, \
+    ApplicationOptInTxn, ApplicationNoOpTxn, OnComplete
 from .config import PoolStatus, get_validator_index, get_approval_program_by_pool_type, get_clear_state_program, get_swap_fee, get_manager_application_id
 from .balance_delta import BalanceDelta
 from .logic_sig_generator import generate_logic_sig
 from ..contract_strings import algofi_manager_strings as manager_strings
 from ..contract_strings import algofi_pool_strings as pool_strings
-from ..utils import get_application_local_state, get_application_global_state
+from ..utils import TransactionGroup, get_application_local_state, get_application_global_state, get_params, int_to_bytes, get_payment_txn
 
 
 class Pool():
@@ -36,6 +37,7 @@ class Pool():
         self.indexer = indexer_client
         self.historical_indexer = historical_indexer_client
         self.network = network
+        self.pool_type = pool_type
         self.asset1 = asset1
         self.asset2 = asset2
         self.manager_application_id = get_manager_application_id(network)
@@ -51,6 +53,35 @@ class Pool():
         else:
             self.pool_status = PoolStatus.UNINITIALIZED
         
+        if logic_sig_local_state:
+
+            if (logic_sig_local_state[manager_strings.registered_asset_1_id] != asset1.asset_id) or \
+            (logic_sig_local_state[manager_strings.registered_asset_2_id] != asset2.asset_id) or \
+            (logic_sig_local_state[manager_strings.validator_index] != self.validator_index):
+                raise Exception("Logic sig state does not match as expected")
+            
+            self.application_id = logic_sig_local_state[manager_strings.registered_pool_id]
+            self.address = get_application_address(self.application_id)
+
+            # get global state
+            pool_state = get_application_global_state(self.algod, self.application_id)
+            self.lp_asset_id = pool_state[pool_strings.lp_id]
+            self.admin = pool_state[pool_strings.admin]
+            self.reserve_factor = pool_state[pool_strings.reserve_factor]
+            self.flash_loan_fee = pool_state[pool_strings.flash_loan_fee]
+            self.max_flash_loan_ratio = pool_state[pool_strings.max_flash_loan_ratio]
+
+    def refresh_metadata(self):
+        """Refresh the metadata of the pool (e.g. if now initialized)
+        """
+
+        logic_sig_local_state = get_application_local_state(self.algod, self.logic_sig.address(), self.manager_application_id)
+        if logic_sig_local_state:
+            self.pool_status = PoolStatus.ACTIVE
+        else:
+            self.pool_status = PoolStatus.UNINITIALIZED
+            raise Exception("Pool is not created or uninitialized")
+        
         if (logic_sig_local_state[manager_strings.registered_asset_1_id] != asset1.asset_id) or \
            (logic_sig_local_state[manager_strings.registered_asset_2_id] != asset2.asset_id) or \
            (logic_sig_local_state[manager_strings.validator_index] != self.validator_index):
@@ -58,7 +89,10 @@ class Pool():
         
         self.application_id = logic_sig_local_state[manager_strings.registered_pool_id]
         self.address = get_application_address(self.application_id)
-        self.lp_asset_id = pool_state[pool_strings.balance_1]
+
+        # get global state
+        pool_state = get_application_global_state(self.algod, self.application_id)
+        self.lp_asset_id = pool_state[pool_strings.lp_id]
         self.admin = pool_state[pool_strings.admin]
         self.reserve_factor = pool_state[pool_strings.reserve_factor]
         self.flash_loan_fee = pool_state[pool_strings.flash_loan_fee]
@@ -126,22 +160,23 @@ class Pool():
         approval_program = get_approval_program_by_pool_type(self.pool_type)
         clear_state_program = get_clear_state_program()
 
-        global_schema = transaction.StateSchema(global_ints=60, global_bytes=4)
-        local_schema = transaction.StateSchema(local_ints=0, local_bytes=0)
+        global_schema = StateSchema(num_uints=60, num_byte_slices=4)
+        local_schema = StateSchema(num_uints=0, num_byte_slices=0)
 
         txn0 = ApplicationCreateTxn(
             sender=sender,
             sp=params,
-            on_complete=OnComplete.NoOp,
+            on_complete=OnComplete.NoOpOC,
             approval_program=approval_program,
             clear_program=clear_state_program,
             global_schema=global_schema,
             local_schema=local_schema,
-            app_args=[int_to_bytes(self.asset1_id), int_to_bytes(self.asset2_id)],
+            app_args=[int_to_bytes(self.asset1.asset_id), int_to_bytes(self.asset2.asset_id)],
+            foreign_apps=[self.manager_application_id],
             extra_pages=3
         )
 
-        return txn0
+        return TransactionGroup([txn0])
     
     def get_initialize_pool_txns(self, sender, pool_app_id):
         """Get group transaction for initializing the pool
@@ -167,17 +202,17 @@ class Pool():
         # opt logic sig into manager
         params.fee = 2000
         txn2 = ApplicationOptInTxn(
-            sender=sender,
+            sender=self.logic_sig.address(),
             sp=params,
             index=self.manager_application_id,
-            app_args=[int_to_bytes(self.asset1_id), int_to_bytes(self.asset2_id), int_to_bytes(self.validator_index)],
+            app_args=[int_to_bytes(self.asset1.asset_id), int_to_bytes(self.asset2.asset_id), int_to_bytes(self.validator_index)],
             accounts=[get_application_address(pool_app_id)],
             foreign_apps=[pool_app_id],
         )
 
         # call pool initialize fcn
         params.fee = 4000
-        foreign_assets = [asset2_id] if asset1_id == 1 else [asset1_id, asset2_id]
+        foreign_assets = [self.asset2.asset_id] if self.asset1.asset_id == 1 else [self.asset1.asset_id, self.asset2.asset_id]
         txn3 = ApplicationNoOpTxn(
             sender=sender,
             sp=params,
@@ -215,10 +250,10 @@ class Pool():
         params = get_params(self.algod)
 
         # send asset 1
-        txn0 = get_payment_txn(params, sender, self.address, self.asset1_id, asset1_amount)
+        txn0 = get_payment_txn(params, sender, self.address, asset1_amount, self.asset1.asset_id)
 
         # send asset 2
-        txn1 = get_payment_txn(params, sender, self.address, self.asset2_id, asset2_amount)
+        txn1 = get_payment_txn(params, sender, self.address, asset2_amount, self.asset2.asset_id)
 
         # pool
         params.fee = 3000
@@ -233,24 +268,24 @@ class Pool():
 
         # redeem asset 1 residual
         params.fee = 1000
-        txn2 = ApplicationNoOpTxn(
-            sender=sender,
-            sp=params,
-            index=self.application_id,
-            app_args=[bytes(pool_strings.redeem_pool_asset1_residual, "utf-8")],
-            foreign_assets=[self.asset1_id]
-        )
-
-        # redeem asset 2 residual
         txn3 = ApplicationNoOpTxn(
             sender=sender,
             sp=params,
             index=self.application_id,
-            app_args=[bytes(pool_strings.redeem_pool_asset2_residual, "utf-8")],
-            foreign_assets=[self.asset2_id]
+            app_args=[bytes(pool_strings.redeem_pool_asset1_residual, "utf-8")],
+            foreign_assets=[self.asset1.asset_id]
         )
 
-        return TransactionGroup([txn0, txn1, txn2, txn3])
+        # redeem asset 2 residual
+        txn4 = ApplicationNoOpTxn(
+            sender=sender,
+            sp=params,
+            index=self.application_id,
+            app_args=[bytes(pool_strings.redeem_pool_asset2_residual, "utf-8")],
+            foreign_assets=[self.asset2.asset_id]
+        )
+
+        return TransactionGroup([txn0, txn1, txn2, txn3, txn4])
     
     def get_burn_txns(self, sender, burn_amount):
         """Get group transaction for burn with given burn amount
@@ -265,7 +300,7 @@ class Pool():
         params = get_params(self.algod)
 
         # send lp token
-        txn0 = get_payment_txn(params, sender, self.address, self.lp_asset_id, burn_amount)
+        txn0 = get_payment_txn(params, sender, self.address, burn_amount, self.lp_asset_id)
 
         # burn asset 1 out
         params.fee = 2000
@@ -274,7 +309,7 @@ class Pool():
             sp=params,
             index=self.application_id,
             app_args=[bytes(pool_strings.burn_asset1_out, "utf-8")],
-            foreign_assets=[self.asset1_id]
+            foreign_assets=[self.asset1.asset_id]
         )
 
         # burn asset 2 out
@@ -283,7 +318,7 @@ class Pool():
             sp=params,
             index=self.application_id,
             app_args=[bytes(pool_strings.burn_asset2_out, "utf-8")],
-            foreign_assets=[self.asset2_id]
+            foreign_assets=[self.asset2.asset_id]
         )
 
         return TransactionGroup([txn0, txn1, txn2])
@@ -292,8 +327,8 @@ class Pool():
         """Get group transaction for swap exact for transaction
         :param sender: sender
         :type sender: str
-        :param swap_in_asset: asset id of incoming asset
-        :type swap_in_asset: int
+        :param swap_in_asset: asset to swap
+        :type swap_in_asset: :class:`Asset`
         :param swap_in_amount: asset amount of incoming asset
         :type swap_in_amount: int
         :param min_amount_to_receive: minimum amount of outgoing asset to receive, assert failure if not
@@ -305,11 +340,11 @@ class Pool():
         params = get_params(self.algod)
 
         # send swap in asset
-        txn0 = get_payment(params, sender, self.address, swap_in_asset, swap_in_amount)
+        txn0 = get_payment_txn(params, sender, self.address, swap_in_amount, swap_in_asset.asset_id)
 
         # swap exact for
         params.fee = 2000
-        foreign_assets = [self.asset2_id] if swap_in_asset == self.asset1_id else ([self.asset1_id] if self.asset1_id != 1 else [])
+        foreign_assets = [self.asset2.asset_id] if swap_in_asset.asset_id == self.asset1.asset_id else ([self.asset1.asset_id] if self.asset1.asset_id != 1 else [])
         txn1 = ApplicationNoOpTxn(
             sender=sender,
             sp=params,
@@ -325,8 +360,8 @@ class Pool():
         """Get group transaction for swap for exact transaction
         :param sender: sender
         :type sender: str
-        :param swap_in_asset: asset id of incoming asset
-        :type swap_in_asset: int
+        :param swap_in_asset: asset to swap
+        :type swap_in_asset: :class:`Asset`
         :param swap_in_amount: asset amount of incoming asset
         :type swap_in_amount: int
         :param amount_to_receive: exact amount to receive of outgoing asset, assert fail if not possible
@@ -338,11 +373,11 @@ class Pool():
         params = get_params(self.algod)
 
         # send swap in asset
-        txn0 = get_payment_txn(params, sender, self.address, swap_in_asset, swap_in_amount)
+        txn0 = get_payment_txn(params, sender, self.address, swap_in_amount, swap_in_asset.asset_id)
 
         # swap for exact
         params.fee = 2000
-        foreign_assets = [self.asset2_id] if swap_in_asset == self.asset1_id else ([self.asset1_id] if self.asset1_id != 1 else [])
+        foreign_assets = [self.asset2.asset_id] if swap_in_asset.asset_id == self.asset1.asset_id else ([self.asset1.asset_id] if self.asset1.asset_id != 1 else [])
         txn1 = ApplicationNoOpTxn(
             sender=sender,
             sp=params,
@@ -360,10 +395,10 @@ class Pool():
             index=self.application_id,
             app_args=[bytes(pool_strings.redeem_swap_residual, "utf-8")],
             foreign_apps=[self.manager_application_id],
-            foreign_assets=[swap_in_asset]
+            foreign_assets=[swap_in_asset.asset_id]
         )
 
-        return TransactionGroup([txn0, txn1])
+        return TransactionGroup([txn0, txn1, txn2])
     
     def get_empty_pool_quote(self, asset1_pooled_amount, asset2_pooled_amount):
         """Get pool quote for an empty pool
@@ -395,7 +430,7 @@ class Pool():
         if (self.lp_circulation == 0):
             raise Exception("Error: pool is empty")
         
-        if (asset_id == self.asset1_id):
+        if (asset_id == self.asset1.asset_id):
             asset1_pooled_amount = asset_amount
             asset2_pooled_amount = int(asset1_pooled_amount * self.asset2_balance / self.asset1_balance)
         else:
@@ -440,7 +475,7 @@ class Pool():
         
         swap_in_amount_less_fees = swap_in_amount - int(math.ceil(swap_in_amount * self.swap_fee))
 
-        if (swap_in_asset_id == self.asset1_id):
+        if (swap_in_asset_id == self.asset1.asset_id):
             swap_out_amount = int((self.asset2_balance * swap_in_amount_less_fees) / (self.asset1_balance + swap_in_amount_less_fees))
         else:
             swap_out_amount = int((self.asset1_balance * swap_in_amount_less_fees) / (self.asset2_balance + swap_in_amount_less_fees))
@@ -460,14 +495,14 @@ class Pool():
         if (self.lp_circulation == 0):
             raise Exception("Error: pool is empty")
         
-        if (swap_out_asset_id == self.asset1_id):
+        if (swap_out_asset_id == self.asset1.asset_id):
             swap_in_amount_less_fees = int((self.asset2_balance * swap_out_amount) / (self.asset1_balance - swap_out_amount)) - 1
         else:
             swap_in_amount_less_fees = int((self.asset1_balance * swap_out_amount) / (self.asset2_balance - swap_out_amount)) - 1
         
         swap_in_amount = math.ceil(swap_in_amount_less_fees / (1 - self.swap_fee))
 
-        if (swap_out_asset_id == self.asset1_id):
+        if (swap_out_asset_id == self.asset1.asset_id):
             return BalanceDelta(self, swap_out_amount, -1 * swap_in_amount, 0)
         else:
             return BalanceDelta(self, -1 * swap_in_amount, swap_out_amount, 0)

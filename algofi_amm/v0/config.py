@@ -53,9 +53,9 @@ def get_approval_program_by_pool_type(pool_type):
     """
 
     if (pool_type == PoolType.CONSTANT_PRODUCT_30BP_FEE):
-        return APPROVAL_PROGRAM_30BP_CONSTANT_PRODUCT
+        return bytes(APPROVAL_PROGRAM_30BP_CONSTANT_PRODUCT)
     elif (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
-        return APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT
+        return bytes(APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT)
 
 
 def get_clear_state_program():
@@ -64,7 +64,7 @@ def get_clear_state_program():
     :rtype: list
     """
 
-    return CLEAR_STATE_PROGRAM
+    return bytes(CLEAR_STATE_PROGRAM)
 
 
 def get_manager_application_id(network):

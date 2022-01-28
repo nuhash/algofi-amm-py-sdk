@@ -1,7 +1,63 @@
 
 import algosdk
-from algosdk.future.transaction import PaymentTxn, AssetTransferTxn
+from algosdk.future.transaction import PaymentTxn, AssetTransferTxn, assign_group_id, LogicSigTransaction
 from base64 import b64decode
+
+
+def int_to_bytes(i):
+    """Convert int to bytes
+    """
+    return i.to_bytes(8, "big")
+
+
+def sign_and_submit_transactions(client, transactions, signed_transactions, sender, sender_sk):
+    for i, txn in enumerate(transactions):
+        if txn.sender == sender:
+            signed_transactions[i] = txn.sign(sender_sk)
+    
+    txid = client.send_transactions(signed_transactions)
+    return wait_for_confirmation(client, txid)
+
+
+def wait_for_confirmation(client, txid):
+    """Waits for a transaction with id txid to complete. Returns dict with transaction information 
+    after completion.
+    :param client: algod client
+    :type client: :class:`AlgodClient`
+    :param txid: id of the sent transaction
+    :type txid: string
+    :return: dict of transaction information
+    :rtype: dict
+    """
+    last_round = client.status().get('last-round')
+    txinfo = client.pending_transaction_info(txid)
+    while not (txinfo.get('confirmed-round') and txinfo.get('confirmed-round') > 0):
+        print("Waiting for confirmation")
+        last_round += 1
+        client.status_after_block(last_round)
+        txinfo = client.pending_transaction_info(txid)
+    txinfo['txid'] = txid
+    print("Transaction {} confirmed in round {}.".format(txid, txinfo.get('confirmed-round')))
+    return txinfo
+
+
+def send_and_wait(algod_client, stxns):
+    """Send list of signed transactions and wait for completion
+    :param algod_client: algod client
+    :type algod_client: :class:`AlgodClient`
+    :param stxns: list of signed transactions
+    :type stxns: list
+    :return: dict of transaction information
+    :rtype: dict
+    """
+    # Send transaction
+    txid = algod_client.send_transactions(stxns)
+    # Await confirmation
+    wait_for_confirmation(algod_client, txid)
+    # Gather results
+    transaction_response = algod_client.pending_transaction_info(txid)
+    # Return response
+    return transaction_response
 
 
 def get_application_global_state(algod_client, application_id):
@@ -156,14 +212,20 @@ class TransactionGroup:
         for i, txn in enumerate(self.transactions):
             self.signed_transactions[i] = txn.sign(private_key)
     
-    def sign_with_private_keys(self, private_keys):
+    def sign_with_private_keys(self, private_keys, is_logic_sig):
         """Signs the transactions with specified private key and saves to class state
-        :param private_key: private key of user
-        :type private_key: string
+        :param private_keys: private key of user
+        :type private_keys: string
+        :param is_logic_sig: if given "pkey" is a logicsig
+        :type is_logic_sig: list
         """
         assert(len(private_keys) == len(self.transactions))
+        assert(len(private_keys) == len(is_logic_sig))
         for i, txn in enumerate(self.transactions):
-            self.signed_transactions[i] = txn.sign(private_keys[i])
+            if is_logic_sig[i]:
+                self.signed_transactions[i] = LogicSigTransaction(txn, private_keys[i])
+            else:
+                self.signed_transactions[i] = txn.sign(private_keys[i])
         
     def submit(self, algod, wait=False):
         """Submits the signed transactions to network using the algod client
