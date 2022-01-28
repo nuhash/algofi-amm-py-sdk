@@ -22,6 +22,7 @@ def sign_and_submit_transactions(client, transactions, signed_transactions, send
 def wait_for_confirmation(client, txid):
     """Waits for a transaction with id txid to complete. Returns dict with transaction information 
     after completion.
+
     :param client: algod client
     :type client: :class:`AlgodClient`
     :param txid: id of the sent transaction
@@ -43,6 +44,7 @@ def wait_for_confirmation(client, txid):
 
 def send_and_wait(algod_client, stxns):
     """Send list of signed transactions and wait for completion
+
     :param algod_client: algod client
     :type algod_client: :class:`AlgodClient`
     :param stxns: list of signed transactions
@@ -62,6 +64,7 @@ def send_and_wait(algod_client, stxns):
 
 def get_application_global_state(algod_client, application_id):
     """Returns dictionary of global state for a given application
+
     :param algod_client: :class:`AlgodClient` object for interacting with network
     :type algod_client: :class:`AlgodClient`
     :param application_id: application id
@@ -84,6 +87,7 @@ def get_application_global_state(algod_client, application_id):
 
 def get_application_local_state(algod_client, address, application_id):
     """Returns dictionary of global state for a given application
+
     :param algod_client: :class:`AlgodClient` object for interacting with network
     :type algod_client: :class:`AlgodClient`
     :param address: an account address
@@ -110,6 +114,7 @@ def get_application_local_state(algod_client, address, application_id):
 
 def get_account_balances(algod_client, address, filter_zero_balances=False):
     """Returns dictionary of global state for a given application
+
     :param algod_client: :class:`AlgodClient` object for interacting with network
     :type algod_client: :class:`AlgodClient`
     :param address: an account address
@@ -142,6 +147,7 @@ def get_account_balances(algod_client, address, filter_zero_balances=False):
 
 def get_params(algod_client, fee=1000, flat_fee=True):
     """Returns dictionary of global state for a given application
+
     :param algod_client: :class:`AlgodClient` object for interacting with network
     :type algod_client: :class:`AlgodClient`
     :param fee: fee in microalgos
@@ -161,6 +167,7 @@ def get_params(algod_client, fee=1000, flat_fee=True):
 
 def get_payment_txn(params, sender, receiver, amount, asset_id=1):
     """Returns dictionary of global state for a given application
+
     :param params: :class:`SuggestedParams` object for interacting with network
     :type params: :class:`SuggestedParams`
     :param sender: sender account address
@@ -195,6 +202,7 @@ class TransactionGroup:
 
     def __init__(self, transactions):
         """Constructor method for :class:`TransactionGroup` class
+
         :param transactions: list of unsigned transactions
         :type transactions: list
         """
@@ -204,6 +212,7 @@ class TransactionGroup:
 
     def sign_with_private_key(self, address, private_key):
         """Signs the transactions with specified private key and saves to class state
+
         :param address: account address of the user
         :type address: string
         :param private_key: private key of user
@@ -214,6 +223,7 @@ class TransactionGroup:
     
     def sign_with_private_keys(self, private_keys, is_logic_sig):
         """Signs the transactions with specified private key and saves to class state
+
         :param private_keys: private key of user
         :type private_keys: string
         :param is_logic_sig: if given "pkey" is a logicsig
@@ -229,6 +239,7 @@ class TransactionGroup:
         
     def submit(self, algod, wait=False):
         """Submits the signed transactions to network using the algod client
+
         :param algod: algod client
         :type algod: :class:`AlgodClient`
         :param wait: wait for txn to complete, defaults to False
