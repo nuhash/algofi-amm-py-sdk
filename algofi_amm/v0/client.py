@@ -59,6 +59,14 @@ class AlgofiAMMClient():
         return pool
 
     def get_asset(self, asset_id):
+        """Returns an :class:`Asset` object representing the asset with given asset id
+
+        :param asset_id: asset id
+        :type asset_id: int
+        :return: :class:`Asset` object representing the asset with given asset id
+        :rtype: :class:`Asset` 
+        """
+
         """Returns a dictionary of user balances by asset id
 
         :param address: address to get info for
