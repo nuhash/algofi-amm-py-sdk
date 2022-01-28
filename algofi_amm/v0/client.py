@@ -10,6 +10,7 @@ class AlgofiAMMClient():
 
     def __init__(self, algod_client: AlgodClient, indexer_client: IndexerClient, historical_indexer_client: IndexerClient, user_address, network):
         """Constructor method for :class:`Client`
+
         :param algod_client: a :class:`AlgodClient` object for interacting with the network
         :type algod_client: :class:`AlgodClient`
         :param indexer_client: a :class:`IndexerClient` object for interacting with the network
@@ -33,6 +34,7 @@ class AlgofiAMMClient():
 
     def get_pool(self, pool_type, asset1_id, asset2_id):
         """Returns a :class:`Pool` object for given assets and pool_type
+
         :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)
         :type pool_type: :class:`PoolType`
         :param asset1_id: asset 1 id
@@ -57,12 +59,12 @@ class AlgofiAMMClient():
         return pool
 
     def get_asset(self, asset_id):
-        """Returns an :class:`Asset` object for a given asset id
+        """Returns an :class:`Asset` object representing the asset with given asset id
 
         :param asset_id: asset id
         :type asset_id: int
-        :return: an :class:`Asset` object for a given asset id
-        :rtype: :class:`Asset`
+        :return: :class:`Asset` object representing the asset with given asset id
+        :rtype: :class:`Asset` 
         """
 
         asset = Asset(self, asset_id)
@@ -76,6 +78,7 @@ class AlgofiAMMClient():
         :return: A dict of information of the user
         :rtype: dict
         """
+
         if not address:
             address = self.user_address
         if address:
@@ -93,6 +96,7 @@ class AlgofiAMMClient():
         :return: boolean if user is opted into an application
         :rtype: boolean
         """
+
         if not address:
             address = self.user_address
         user_info = self.get_user_info(address)
@@ -108,6 +112,7 @@ class AlgofiAMMClient():
         :return: boolean if user is opted into an asset
         :rtype: boolean
         """
+
         if not address:
             address = self.user_address
         user_info = self.get_user_info(address)
@@ -121,6 +126,7 @@ class AlgofiAMMClient():
         :return: amount of asset
         :rtype: int
         """
+
         if not address:
             address = self.user_address
         user_info = self.get_user_info(address)
@@ -138,6 +144,7 @@ class AlgofiAMMClient():
         :return: amount of asset
         :rtype: int
         """
+
         if not address:
             address = self.user_address
         return self.get_user_balances(address).get(asset.asset_id, 0)
