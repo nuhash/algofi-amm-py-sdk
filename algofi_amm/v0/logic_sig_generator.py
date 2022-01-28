@@ -10,6 +10,7 @@ POOL_FACTORY_LOGIC_SIG_TEMPLATE_4 = [18, 68, 49, 32, 50, 3, 18, 68, 36, 67]
 
 def encode_varint(integer):
     """Returns bytecode representation of a TEAL Int from an integer
+
     :param integer: integer to encode
     :type integer: int
     :return: list of ints representing bytecode representation of TEAL Int
@@ -29,6 +30,7 @@ def encode_varint(integer):
 
 def generate_logic_sig(asset1_id, asset2_id, manager_app_id, validator_index):
     """Returns a boolean if the user address is opted into an application with id app_id
+
     :param asset1_id: asset id of first asset in pool
     :type asset1_id: int
     :param asset1_id: asset id of second asset in pool

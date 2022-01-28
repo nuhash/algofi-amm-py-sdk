@@ -30,6 +30,7 @@ class PoolStatus(Enum):
 # lookup functions
 def get_validator_index(network, pool_type):
     """Gets the validator index for a given pool type and network
+
     :param network: network ("testnet" or "mainnet")
     :type network: str
     :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)
@@ -46,6 +47,7 @@ def get_validator_index(network, pool_type):
 
 def get_approval_program_by_pool_type(pool_type):
     """Gets the approval program for a given pool type
+
     :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)
     :type pool_type: :class:`PoolType`
     :return: approval program bytecode for given pool type as list of ints
@@ -60,6 +62,7 @@ def get_approval_program_by_pool_type(pool_type):
 
 def get_clear_state_program():
     """Gets the clear state program
+
     :return: clear state program bytecode as list of ints
     :rtype: list
     """
@@ -69,6 +72,7 @@ def get_clear_state_program():
 
 def get_manager_application_id(network):
     """Gets the manager application id for the given network
+
     :param network: network ("testnet" or "mainnet")
     :type network: str
     :return: manager application id for the given network
@@ -83,6 +87,7 @@ def get_manager_application_id(network):
 
 def get_swap_fee(pool_type):
     """Gets the swap fee for a given pool type
+
     :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)
     :type pool_type: :class:`PoolType`
     :return: swap fee for a given pool type
@@ -97,6 +102,7 @@ def get_swap_fee(pool_type):
 
 def get_usdc_asset_id(network):
     """Gets asset id of USDC for a given network
+
     :param network: network ("testnet" or "mainnet")
     :type network: str
     :return: asset id of USDC for a given network
@@ -111,6 +117,7 @@ def get_usdc_asset_id(network):
 
 def get_stbl_asset_id(network):
     """Gets asset id of STBL for a given network
+
     :param network: network ("testnet" or "mainnet")
     :type network: str
     :return: asset id of STBL for a given network

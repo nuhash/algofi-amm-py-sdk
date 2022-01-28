@@ -16,6 +16,7 @@ class Pool():
 
     def __init__(self, algod_client, indexer_client, historical_indexer_client, network, pool_type, asset1, asset2):
         """Constructor method for :class:`Pool`
+
         :param algod_client: a :class:`AlgodClient` object for interacting with the network
         :type algod_client: :class:`AlgodClient`
         :param indexer_client: a :class:`IndexerClient` object for interacting with the network
@@ -121,6 +122,7 @@ class Pool():
 
     def get_pool_price(self, asset_id):
         """Gets the price of the pool in terms of the asset with given asset_id
+
         :param asset_id: asset id of the asset to price
         :type asset_id: int
         :return: price of pool in terms of asset with given asset_id
@@ -136,6 +138,7 @@ class Pool():
     
     def sign_txn_with_logic_sig(self, transaction):
         """Returns input transaction signed with logic sig of pool
+
         :param transaction: a :class:`Transaction` to sign
         :type transaction: :class:`Transaction`
         :return: transaction signed with logic sig of pool
@@ -146,6 +149,7 @@ class Pool():
     
     def get_create_pool_txn(self, sender):
         """Returns unsigned CreatePool transaction with given sender
+
         :param sender: sender
         :type sender: str
         :return: unsigned CreatePool transaction with given sender
@@ -180,6 +184,7 @@ class Pool():
     
     def get_initialize_pool_txns(self, sender, pool_app_id):
         """Get group transaction for initializing the pool
+
         :param sender: sender
         :type sender: str
         :param pool_app_id: application id of the pool to initialize
@@ -226,6 +231,7 @@ class Pool():
 
     def get_lp_token_opt_in_txn(self, sender):
         """Get lp token opt in transaction for the given sender
+
         :param sender: sender
         :type sender: str
         :return: lp token opt in transaction for the given sender
@@ -237,6 +243,7 @@ class Pool():
     
     def get_pool_txns(self, sender, asset1_amount, asset2_amount, maximum_slippage):
         """Get group transaction for pooling with given asset amounts and maximum slippage
+
         :param sender: sender
         :type sender: str
         :param asset1_amount: asset amount for the first asset
@@ -289,6 +296,7 @@ class Pool():
     
     def get_burn_txns(self, sender, burn_amount):
         """Get group transaction for burn with given burn amount
+
         :param sender: sender
         :type sender: str
         :param burn_amount: lp asset amount to burn
@@ -325,6 +333,7 @@ class Pool():
     
     def get_swap_exact_for_txns(self, sender, swap_in_asset, swap_in_amount, min_amount_to_receive):
         """Get group transaction for swap exact for transaction
+
         :param sender: sender
         :type sender: str
         :param swap_in_asset: asset to swap
@@ -358,6 +367,7 @@ class Pool():
 
     def get_swap_for_exact_txns(self, sender, swap_in_asset, swap_in_amount, amount_to_receive):
         """Get group transaction for swap for exact transaction
+
         :param sender: sender
         :type sender: str
         :param swap_in_asset: asset to swap
@@ -402,6 +412,7 @@ class Pool():
     
     def get_empty_pool_quote(self, asset1_pooled_amount, asset2_pooled_amount):
         """Get pool quote for an empty pool
+
         :param asset1_pooled_amount: asset 1 pooled amount
         :type asset1_pooled_amount: int
         :param asset2_pooled_amount: asset 2 pooled amount
@@ -419,6 +430,7 @@ class Pool():
     
     def get_pool_quote(self, asset_id, asset_amount):
         """Get full pool quote for a given asset id and amount
+
         :param asset_id: asset id of the asset to pool
         :type asset_id: int
         :param asset_amount: asset amount of the asset to pool
@@ -443,6 +455,7 @@ class Pool():
     
     def get_burn_quote(self, lp_amount):
         """Get burn quote for a given amount of lps to burn
+
         :param lp_amount: lp amount to burn
         :type lp_amount: int
         :return: burn quote for a given amount of lps to burn
@@ -462,6 +475,7 @@ class Pool():
     
     def get_swap_exact_for_quote(swap_in_asset_id, swap_in_amount):
         """Get swap exact for quote for a given asset id and swap amount
+
         :param swap_in_asset_id: id of incoming asset to swap
         :type swap_in_asset_id: int
         :param swap_in_amount: amount of incoming asset to swap
@@ -484,6 +498,7 @@ class Pool():
 
     def get_swap_for_exact_quote(swap_out_asset_id, swap_out_amount):
         """Get swap for exact quote for a given asset id and swap amount
+
         :param swap_out_asset_id: id of outgoing asset
         :type swap_out_asset_id: int
         :param swap_out_amount: amount of outgoing asset
