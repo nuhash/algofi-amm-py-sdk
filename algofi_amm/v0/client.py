@@ -58,6 +58,7 @@ class AlgofiAMMClient():
 
     def get_asset(self, asset_id):
         """Returns an :class:`Asset` object for a given asset id
+
         :param asset_id: asset id
         :type asset_id: int
         :return: an :class:`Asset` object for a given asset id
