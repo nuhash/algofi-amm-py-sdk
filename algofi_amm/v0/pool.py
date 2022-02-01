@@ -1,4 +1,5 @@
 
+import time
 import math
 import algosdk
 from algosdk.logic import get_application_address
@@ -177,6 +178,7 @@ class Pool():
             local_schema=local_schema,
             app_args=[int_to_bytes(self.asset1.asset_id), int_to_bytes(self.asset2.asset_id)],
             foreign_apps=[self.manager_application_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big'),
             extra_pages=3
         )
 
@@ -213,6 +215,7 @@ class Pool():
             app_args=[int_to_bytes(self.asset1.asset_id), int_to_bytes(self.asset2.asset_id), int_to_bytes(self.validator_index)],
             accounts=[get_application_address(pool_app_id)],
             foreign_apps=[pool_app_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         # call pool initialize fcn
@@ -224,7 +227,8 @@ class Pool():
             index=pool_app_id,
             app_args=[bytes(pool_strings.initialize_pool, "utf-8")],
             foreign_apps=[self.manager_application_id],
-            foreign_assets=foreign_assets
+            foreign_assets=foreign_assets,
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         return TransactionGroup([txn0, txn1, txn2, txn3])
@@ -270,7 +274,8 @@ class Pool():
             index=self.application_id,
             app_args=[bytes(pool_strings.pool, "utf-8"), int_to_bytes(maximum_slippage)],
             foreign_apps=[self.manager_application_id],
-            foreign_assets=[self.lp_asset_id]
+            foreign_assets=[self.lp_asset_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         # redeem asset 1 residual
@@ -280,7 +285,8 @@ class Pool():
             sp=params,
             index=self.application_id,
             app_args=[bytes(pool_strings.redeem_pool_asset1_residual, "utf-8")],
-            foreign_assets=[self.asset1.asset_id]
+            foreign_assets=[self.asset1.asset_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         # redeem asset 2 residual
@@ -289,7 +295,8 @@ class Pool():
             sp=params,
             index=self.application_id,
             app_args=[bytes(pool_strings.redeem_pool_asset2_residual, "utf-8")],
-            foreign_assets=[self.asset2.asset_id]
+            foreign_assets=[self.asset2.asset_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         return TransactionGroup([txn0, txn1, txn2, txn3, txn4])
@@ -317,7 +324,8 @@ class Pool():
             sp=params,
             index=self.application_id,
             app_args=[bytes(pool_strings.burn_asset1_out, "utf-8")],
-            foreign_assets=[self.asset1.asset_id]
+            foreign_assets=[self.asset1.asset_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         # burn asset 2 out
@@ -326,7 +334,8 @@ class Pool():
             sp=params,
             index=self.application_id,
             app_args=[bytes(pool_strings.burn_asset2_out, "utf-8")],
-            foreign_assets=[self.asset2.asset_id]
+            foreign_assets=[self.asset2.asset_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         return TransactionGroup([txn0, txn1, txn2])
@@ -360,7 +369,8 @@ class Pool():
             index=self.application_id,
             app_args=[bytes(pool_strings.swap_exact_for, "utf-8"), int_to_bytes(min_amount_to_receive)],
             foreign_apps=[self.manager_application_id],
-            foreign_assets=foreign_assets
+            foreign_assets=foreign_assets,
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         return TransactionGroup([txn0, txn1])
@@ -394,7 +404,8 @@ class Pool():
             index=self.application_id,
             app_args=[bytes(pool_strings.swap_for_exact, "utf-8"), int_to_bytes(amount_to_receive)],
             foreign_apps=[self.manager_application_id],
-            foreign_assets=foreign_assets
+            foreign_assets=foreign_assets,
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         # redeem unused swap in asset
@@ -405,7 +416,8 @@ class Pool():
             index=self.application_id,
             app_args=[bytes(pool_strings.redeem_swap_residual, "utf-8")],
             foreign_apps=[self.manager_application_id],
-            foreign_assets=[swap_in_asset.asset_id]
+            foreign_assets=[swap_in_asset.asset_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         return TransactionGroup([txn0, txn1, txn2])
