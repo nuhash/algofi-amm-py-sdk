@@ -4,6 +4,8 @@ import algosdk
 from algosdk.future.transaction import PaymentTxn, AssetTransferTxn, assign_group_id, LogicSigTransaction
 from base64 import b64decode
 
+# constants
+PARAMETER_SCALE_FACTOR = 1000000
 
 def int_to_bytes(i):
     """Convert int to bytes
@@ -268,6 +270,7 @@ class TransactionGroup:
         """
 
         aggregate_transactions = self.transactions + transaction_group.transactions
+        # set group to None
         for i in range(len(aggregate_transactions)):
             aggregate_transactions[i].group = None
         new_transaction_group = TransactionGroup(aggregate_transactions)

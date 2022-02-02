@@ -17,18 +17,26 @@ class Asset():
         :param asset_id: asset id
         :type asset_id: int
         """
-        asset_info = amm_client.algod.asset_info(asset_id)
+
         self.asset_id = asset_id
-        self.creator = asset_info["params"]["creator"]
-        self.decimals = asset_info["params"]["decimals"]
-        self.default_frozen = asset_info["params"].get("default-frozen", False)
-        self.freeze = asset_info["params"].get("freeze", None)
-        self.manager = asset_info["params"].get("manager", None)
-        self.name = asset_info["params"].get("name", None)
-        self.reserve = asset_info["params"].get("reserve", None)
-        self.total = asset_info["params"].get("total", None)
-        self.unit_name = asset_info["params"].get("unit-name", None)
-        self.url = asset_info["params"].get("url", None)
+        if asset_id == 1:
+            self.decimals = ALGO_DECIMALS
+            self.name = "Algorand"
+            self.total = 10000000000
+            self.unit_name = "ALGO"
+            self.url = "https://www.algorand.com/"
+        else:
+            asset_info = amm_client.algod.asset_info(asset_id)
+            self.creator = asset_info["params"]["creator"]
+            self.decimals = asset_info["params"]["decimals"]
+            self.default_frozen = asset_info["params"].get("default-frozen", False)
+            self.freeze = asset_info["params"].get("freeze", None)
+            self.manager = asset_info["params"].get("manager", None)
+            self.name = asset_info["params"].get("name", None)
+            self.reserve = asset_info["params"].get("reserve", None)
+            self.total = asset_info["params"].get("total", None)
+            self.unit_name = asset_info["params"].get("unit-name", None)
+            self.url = asset_info["params"].get("url", None)
     
     def __str__(self):
         """Returns a pretty string representation of the :class:`Asset` object
