@@ -185,7 +185,11 @@ class Pool():
         return TransactionGroup([txn0])
     
     def get_initialize_pool_txns(self, sender, pool_app_id):
-        """Get group transaction for initializing the pool
+        """Get group transaction for initializing the pool. First, the manager is 
+        funded (which funds the pool contract (for opting into assets, creating LP token)
+        via an inner payment txn. Then, the logic sig is funded to opt into manager.
+        After, the sender calls the initialize function on the pool. This transaction
+        "registers" the pool with the manager so it is searchable via SDK.
 
         :param sender: sender
         :type sender: str
@@ -246,7 +250,13 @@ class Pool():
         return get_payment_txn(params, sender, sender, amount=int(0), asset_id=self.lp_asset_id)
     
     def get_pool_txns(self, sender, asset1_amount, asset2_amount, maximum_slippage):
-        """Get group transaction for pooling with given asset amounts and maximum slippage
+        """Get group transaction for pooling with given asset amounts and maximum slippage.
+        The two assets are sent via two :class:`PaymentTxn` / :class:`AssetTransferTxn`. Then, a pool call
+        is made from which the LP tokens are issued via inner asset transfer txn. Lastly,
+        two redeem residual calls are made to redeem residuals of assets 1 and 2 that
+        are not used in the pooling operation. The ratio of the incoming asset amounts
+        is compared to the ratio on the smart contract. If it differs (up or down) by more
+        than the max_slippage percent, the transaction fails.
 
         :param sender: sender
         :type sender: str
@@ -302,7 +312,9 @@ class Pool():
         return TransactionGroup([txn0, txn1, txn2, txn3, txn4])
     
     def get_burn_txns(self, sender, burn_amount):
-        """Get group transaction for burn with given burn amount
+        """Get group transaction for burn with given burn amount. The LP token
+        is transferred via :class:`AssetTransferTxn`. Then, two burn calls are made,
+        one for each asset.
 
         :param sender: sender
         :type sender: str
@@ -341,7 +353,10 @@ class Pool():
         return TransactionGroup([txn0, txn1, txn2])
     
     def get_swap_exact_for_txns(self, sender, swap_in_asset, swap_in_amount, min_amount_to_receive):
-        """Get group transaction for swap exact for transaction
+        """Get group transaction for swap exact for transaction. An exact amount of the asset
+        to be swapped is sent via a :class:`PaymentTxn` or :class:`AssetTransferTxn`. 
+        Then, a swap exact for call is made from which the output asset is sent via inner transaction.
+        If the output asset amount exceeds the min_amount_to_receive, the transaction succeeds.
 
         :param sender: sender
         :type sender: str
@@ -376,7 +391,11 @@ class Pool():
         return TransactionGroup([txn0, txn1])
 
     def get_swap_for_exact_txns(self, sender, swap_in_asset, swap_in_amount, amount_to_receive):
-        """Get group transaction for swap for exact transaction
+        """Get group transaction for swap for exact transaction. An amount of the asset to be
+        swapped is sent via a :class:`PaymentTxn` or :class:`AssetTransferTxn`. Then, swap for exact
+        call is made to swap for an exact amount of the output asset. If a sufficient amount
+        of the incoming asset has been sent, the transaction succeeds. If it succeeds, a 
+        residual amount of the incoming asset is redeemed by the user in the next call.
 
         :param sender: sender
         :type sender: str
