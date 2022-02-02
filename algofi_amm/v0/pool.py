@@ -264,6 +264,8 @@ class Pool():
         :type asset1_amount: int
         :param asset2_amount: asset amount for the second asset
         :type asset2_amount: int
+        :param maximum_slippage: maximum slippage percent (scaled by 1000000) allowed
+        :type maximum_slippage: int
         :return: group transaction for pooling with given asset amounts and maximum slippage
         :rtype: :class:`TransactionGroup`
         """

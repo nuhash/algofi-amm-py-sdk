@@ -2,7 +2,7 @@
 Algofi AMM Python SDK
 
 ## Documentation
-https://algofi-py-sdk.readthedocs.io/en/latest/index.html
+https://algofi-amm-py-sdk.readthedocs.io/en/latest/index.html
 
 ## Design Goal
 This SDK is useful for developers who want to programatically interact with the Algofi DEX.
