@@ -1,4 +1,5 @@
 
+import time
 import math
 import algosdk
 from algosdk.logic import get_application_address
@@ -9,7 +10,7 @@ from .balance_delta import BalanceDelta
 from .logic_sig_generator import generate_logic_sig
 from ..contract_strings import algofi_manager_strings as manager_strings
 from ..contract_strings import algofi_pool_strings as pool_strings
-from ..utils import TransactionGroup, get_application_local_state, get_application_global_state, get_params, int_to_bytes, get_payment_txn
+from ..utils import PARAMETER_SCALE_FACTOR, TransactionGroup, get_application_local_state, get_application_global_state, get_params, int_to_bytes, get_payment_txn
 
 
 class Pool():
@@ -177,6 +178,7 @@ class Pool():
             local_schema=local_schema,
             app_args=[int_to_bytes(self.asset1.asset_id), int_to_bytes(self.asset2.asset_id)],
             foreign_apps=[self.manager_application_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big'),
             extra_pages=3
         )
 
@@ -213,6 +215,7 @@ class Pool():
             app_args=[int_to_bytes(self.asset1.asset_id), int_to_bytes(self.asset2.asset_id), int_to_bytes(self.validator_index)],
             accounts=[get_application_address(pool_app_id)],
             foreign_apps=[pool_app_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         # call pool initialize fcn
@@ -224,7 +227,8 @@ class Pool():
             index=pool_app_id,
             app_args=[bytes(pool_strings.initialize_pool, "utf-8")],
             foreign_apps=[self.manager_application_id],
-            foreign_assets=foreign_assets
+            foreign_assets=foreign_assets,
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         return TransactionGroup([txn0, txn1, txn2, txn3])
@@ -270,7 +274,8 @@ class Pool():
             index=self.application_id,
             app_args=[bytes(pool_strings.pool, "utf-8"), int_to_bytes(maximum_slippage)],
             foreign_apps=[self.manager_application_id],
-            foreign_assets=[self.lp_asset_id]
+            foreign_assets=[self.lp_asset_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         # redeem asset 1 residual
@@ -280,7 +285,8 @@ class Pool():
             sp=params,
             index=self.application_id,
             app_args=[bytes(pool_strings.redeem_pool_asset1_residual, "utf-8")],
-            foreign_assets=[self.asset1.asset_id]
+            foreign_assets=[self.asset1.asset_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         # redeem asset 2 residual
@@ -289,7 +295,8 @@ class Pool():
             sp=params,
             index=self.application_id,
             app_args=[bytes(pool_strings.redeem_pool_asset2_residual, "utf-8")],
-            foreign_assets=[self.asset2.asset_id]
+            foreign_assets=[self.asset2.asset_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         return TransactionGroup([txn0, txn1, txn2, txn3, txn4])
@@ -317,7 +324,8 @@ class Pool():
             sp=params,
             index=self.application_id,
             app_args=[bytes(pool_strings.burn_asset1_out, "utf-8")],
-            foreign_assets=[self.asset1.asset_id]
+            foreign_assets=[self.asset1.asset_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         # burn asset 2 out
@@ -326,7 +334,8 @@ class Pool():
             sp=params,
             index=self.application_id,
             app_args=[bytes(pool_strings.burn_asset2_out, "utf-8")],
-            foreign_assets=[self.asset2.asset_id]
+            foreign_assets=[self.asset2.asset_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         return TransactionGroup([txn0, txn1, txn2])
@@ -360,7 +369,8 @@ class Pool():
             index=self.application_id,
             app_args=[bytes(pool_strings.swap_exact_for, "utf-8"), int_to_bytes(min_amount_to_receive)],
             foreign_apps=[self.manager_application_id],
-            foreign_assets=foreign_assets
+            foreign_assets=foreign_assets,
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         return TransactionGroup([txn0, txn1])
@@ -394,7 +404,8 @@ class Pool():
             index=self.application_id,
             app_args=[bytes(pool_strings.swap_for_exact, "utf-8"), int_to_bytes(amount_to_receive)],
             foreign_apps=[self.manager_application_id],
-            foreign_assets=foreign_assets
+            foreign_assets=foreign_assets,
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         # redeem unused swap in asset
@@ -405,11 +416,59 @@ class Pool():
             index=self.application_id,
             app_args=[bytes(pool_strings.redeem_swap_residual, "utf-8")],
             foreign_apps=[self.manager_application_id],
-            foreign_assets=[swap_in_asset.asset_id]
+            foreign_assets=[swap_in_asset.asset_id],
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
         return TransactionGroup([txn0, txn1, txn2])
     
+    def get_flash_loan_txns(self, sender, flash_loan_asset, flash_loan_amount, group_transaction):
+        """Get group transaction for swap exact for transaction
+
+        :param sender: sender
+        :type sender: str
+        :param flash_loan_asset: asset to borrow in flash loan
+        :type flash_loan_asset: :class:`Asset`
+        :param flash_loan_amount: asset amount to borrow
+        :type flash_loan_amount: int
+        :param group_transaction: a group transaction to "sandwich" between flash loan transaction
+        :type group_transaction: :class:`TransactionGroup`
+        :return: group transaction for flash loan transaction composed with group transaction
+        :rtype: :class:`TransactionGroup`
+        """
+
+        params = get_params(self.algod)
+
+        # flash loan txn
+        params.fee = 2000
+        foreign_assets = [self.asset2.asset_id] if flash_loan_asset.asset_id == self.asset2.asset_id else ([self.asset1.asset_id] if self.asset1.asset_id != 1 else [])
+        txn0 = ApplicationNoOpTxn(
+            sender=sender,
+            sp=params,
+            index=self.application_id,
+            app_args=[
+                bytes(pool_strings.flash_loan, "utf-8"),
+                int_to_bytes(flash_loan_asset.asset_id),
+                int_to_bytes(flash_loan_amount)
+            ],
+            foreign_apps=[self.manager_application_id],
+            foreign_assets=foreign_assets,
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
+        )
+
+        # repayment txn
+        params.fee = 1000
+        flash_loan_fee = (flash_loan_amount * self.flash_loan_fee) // PARAMETER_SCALE_FACTOR + int(1)
+        repay_amount = flash_loan_amount + flash_loan_fee
+        txn1 = get_payment_txn(params, sender, self.address, repay_amount, flash_loan_asset.asset_id)
+
+        # set group to None
+        transactions = [txn0] + group_transaction.transactions + [txn1]
+        for i in range(len(transactions)):
+            transactions[i].group = None
+
+        return TransactionGroup([txn0] + group_transaction.transactions + [txn1])
+
     def get_empty_pool_quote(self, asset1_pooled_amount, asset2_pooled_amount):
         """Get pool quote for an empty pool
 

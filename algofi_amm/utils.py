@@ -1,8 +1,11 @@
 
+import time
 import algosdk
 from algosdk.future.transaction import PaymentTxn, AssetTransferTxn, assign_group_id, LogicSigTransaction
 from base64 import b64decode
 
+# constants
+PARAMETER_SCALE_FACTOR = 1000000
 
 def int_to_bytes(i):
     """Convert int to bytes
@@ -188,6 +191,7 @@ def get_payment_txn(params, sender, receiver, amount, asset_id=1):
             sp=params,
             receiver=receiver,
             amt=amount,
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
     else:
         return AssetTransferTxn(
@@ -195,7 +199,8 @@ def get_payment_txn(params, sender, receiver, amount, asset_id=1):
             sp=params,
             receiver=receiver,
             amt=amount,
-            index=asset_id
+            index=asset_id,
+            note=int(time.time() * 1000 * 1000).to_bytes(8, 'big')
         )
 
 class TransactionGroup:
@@ -254,3 +259,19 @@ class TransactionGroup:
         if wait:
             return wait_for_confirmation(algod, txid)
         return {"txid": txid}
+
+    def __add__(self, transaction_group):
+        """Combines two transaction groups together in order
+
+        :param transaction_group: transaction group
+        :type transaction_group: :class:`TransactionGroup`
+        :return: combined transaction group
+        :rtype: :class:`TransactionGroup`
+        """
+
+        aggregate_transactions = self.transactions + transaction_group.transactions
+        # set group to None
+        for i in range(len(aggregate_transactions)):
+            aggregate_transactions[i].group = None
+        new_transaction_group = TransactionGroup(aggregate_transactions)
+        return new_transaction_group
