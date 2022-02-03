@@ -67,14 +67,6 @@ class AlgofiAMMClient():
         :rtype: :class:`Asset` 
         """
 
-        """Returns a dictionary of user balances by asset id
-
-        :param address: address to get info for
-        :type address: string
-        :return: amount of asset
-        :rtype: int
-        """
-
         asset = Asset(self, asset_id)
         return asset
     
