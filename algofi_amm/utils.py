@@ -1,7 +1,6 @@
-
 import time
-import algosdk
 from algosdk.future.transaction import PaymentTxn, AssetTransferTxn, assign_group_id, LogicSigTransaction
+from algosdk.error import AlgodHTTPError
 from base64 import b64decode
 
 # constants

@@ -1,5 +1,3 @@
-
-import algosdk
 from algosdk.v2client.algod import AlgodClient
 from algosdk.v2client.indexer import IndexerClient
 from .config import Network
@@ -123,8 +121,8 @@ class AlgofiAMMClient():
 
         :param address: address to get info for
         :type address: string
-        :return: amount of asset
-        :rtype: int
+        :return: dictionary of user balances by asset id 
+        :rtype: dict
         """
 
         if not address:

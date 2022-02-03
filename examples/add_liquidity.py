@@ -17,8 +17,8 @@ amm_client = AlgofiAMMTestnetClient(user_address=sender)
 # SET POOL ASSETS + AMOUNTS
 asset1_id = 62482274
 asset2_id = 62482993
-asset1_pool_amount = 10
-asset2_pool_amount = 10
+asset1_pool_amount = 100000
+asset2_pool_amount = 20000000
 maximum_slippage=500
 asset1 = Asset(amm_client, asset1_id)
 asset2 = Asset(amm_client, asset2_id)
