@@ -17,8 +17,8 @@ amm_client = AlgofiAMMTestnetClient(user_address=sender)
 # SET POOL ASSETS + AMOUNTS
 asset1_id = 62482274
 asset2_id = 62482993
-asset1_pool_amount = 100000
-asset2_pool_amount = 20000000
+asset1_pool_amount = 10
+asset2_pool_amount = 10
 maximum_slippage=500
 asset1 = Asset(amm_client, asset1_id)
 asset2 = Asset(amm_client, asset2_id)
@@ -53,6 +53,7 @@ if amm_client.get_user_balance(asset2) < asset2_pool_amount:
 
 if pool.pool_status == PoolStatus.UNINITIALIZED:
     print("Pool has not been created + initialized")
+    
 else:
     pool_txn = pool.get_pool_txns(sender, asset1_pool_amount, asset2_pool_amount, maximum_slippage=maximum_slippage)
     pool_txn.sign_with_private_key(sender, key)
