@@ -53,6 +53,7 @@ if amm_client.get_user_balance(asset2) < asset2_pool_amount:
 
 if pool.pool_status == PoolStatus.UNINITIALIZED:
     print("Pool has not been created + initialized")
+    
 else:
     pool_txn = pool.get_pool_txns(sender, asset1_pool_amount, asset2_pool_amount, maximum_slippage=maximum_slippage)
     pool_txn.sign_with_private_key(sender, key)

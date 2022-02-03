@@ -1,7 +1,6 @@
 
 import pprint
-import algosdk
-from .config import PoolType, PoolStatus, get_usdc_asset_id, get_stbl_asset_id
+from .config import PoolType, PoolStatus, get_usdc_asset_id, get_stbl_asset_id, ALGO_ASSET_ID
 
 # asset decimals
 ALGO_DECIMALS = 6

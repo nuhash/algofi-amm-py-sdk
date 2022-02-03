@@ -1,7 +1,6 @@
 
 import time
 import math
-import algosdk
 from algosdk.logic import get_application_address
 from algosdk.future.transaction import LogicSigAccount, LogicSigTransaction, OnComplete, StateSchema, ApplicationCreateTxn, \
     ApplicationOptInTxn, ApplicationNoOpTxn, OnComplete
@@ -24,6 +23,8 @@ class Pool():
         :type indexer_client: :class:`IndexerClient`
         :param historical_indexer_client: a :class:`IndexerClient` object for interacting with the network (historical state)
         :type historical_indexer_client: :class:`IndexerClient`
+        :param network: network ("testnet" or "mainnet")
+        :type network: str
         :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)
         :type pool_type: :class:`PoolType`
         :param asset1: a :class:`Asset` representing the first asset of the pool
@@ -84,8 +85,8 @@ class Pool():
             self.pool_status = PoolStatus.UNINITIALIZED
             raise Exception("Pool is not created or uninitialized")
         
-        if (logic_sig_local_state[manager_strings.registered_asset_1_id] != asset1.asset_id) or \
-           (logic_sig_local_state[manager_strings.registered_asset_2_id] != asset2.asset_id) or \
+        if (logic_sig_local_state[manager_strings.registered_asset_1_id] != self.asset1.asset_id) or \
+           (logic_sig_local_state[manager_strings.registered_asset_2_id] != self.asset2.asset_id) or \
            (logic_sig_local_state[manager_strings.validator_index] != self.validator_index):
            raise Exception("Logic sig state does not match as expected")
         
@@ -130,9 +131,9 @@ class Pool():
         :rtype: float
         """
 
-        if (asset_id == asset1.asset_id):
+        if (asset_id == self.asset1.asset_id):
             return self.asset1_balance / self.asset2_balance
-        elif (asset_id == asset2.asset_id):
+        elif (asset_id == self.asset2.asset_id):
             return self.asset2_balance / self.asset1_balance
         else:
             raise Exception("Invalid asset id")
@@ -553,7 +554,7 @@ class Pool():
 
         return BalanceDelta(self, asset1_amount, asset2_amount, -1 * lp_amount)
     
-    def get_swap_exact_for_quote(swap_in_asset_id, swap_in_amount):
+    def get_swap_exact_for_quote(self, swap_in_asset_id, swap_in_amount):
         """Get swap exact for quote for a given asset id and swap amount
 
         :param swap_in_asset_id: id of incoming asset to swap
@@ -576,7 +577,7 @@ class Pool():
         
         return BalanceDelta(self, swap_out_amount, -1 * swap_in_amount, 0)
 
-    def get_swap_for_exact_quote(swap_out_asset_id, swap_out_amount):
+    def get_swap_for_exact_quote(self, swap_out_asset_id, swap_out_amount):
         """Get swap for exact quote for a given asset id and swap amount
 
         :param swap_out_asset_id: id of outgoing asset
