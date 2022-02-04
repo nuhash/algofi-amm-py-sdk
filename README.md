@@ -1,5 +1,5 @@
 # algofi-amm-py-sdk
-Algofi AMM Python SDK
+Official Python SDK for the Algofi DEX
 
 ## Documentation
 https://algofi-amm-py-sdk.readthedocs.io/en/latest/index.html
