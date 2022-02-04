@@ -1,6 +1,7 @@
 from algosdk.v2client.algod import AlgodClient
 from algosdk.v2client.indexer import IndexerClient
-from .config import Network
+from .config import Network, POOL_FACTORY_LOGIC_SIG_TEMPLATE_1, POOL_FACTORY_LOGIC_SIG_TEMPLATE_2, POOL_FACTORY_LOGIC_SIG_TEMPLATE_3, \
+POOL_FACTORY_LOGIC_SIG_TEMPLATE_4
 from .pool import Pool
 from .asset import Asset
 
@@ -29,6 +30,8 @@ class AlgofiAMMClient():
         self.historical_indexer = historical_indexer_client
         self.network = network
         self.user_address = user_address
+        self.manager_application_id = get_manager_application_id(network)
+        self.manager_address = get_application_address(self.manager_application_id)
 
     def get_pool(self, pool_type, asset1_id, asset2_id):
         """Returns a :class:`Pool` object for given assets and pool_type
@@ -146,6 +149,64 @@ class AlgofiAMMClient():
         if not address:
             address = self.user_address
         return self.get_user_balances(address).get(asset.asset_id, 0)
+
+    def get_valid_pool_app_ids(self):
+        """Returns a list of valid pool app ids.
+
+        :return: a :class:`Pool` object for given assets and pool_type
+        :rtype: :class:`Pool`
+        """
+
+        nextpage = ""
+        accounts = []
+        # get accounts opted in to
+        while nextpage is not None:
+            account_data = self.indexer.accounts(limit=1000, next_page=nextpage, application_id=self.manager_app_id)
+            accounts_interim = account_data.get("accounts", [])
+            if accounts_interim:
+                accounts.extend(accounts_interim)
+            nextpage = account_data.get("next-token", None)
+        # filter accounts by logic sig
+        pool_app_ids = []
+        for account in accounts:
+            account_local_state = account.get("apps-local-state", {})
+            # number of opted in apps is only 1
+            if len(account_local_state) == 1:
+                a1, a2, vi, p = None, None, None, None
+                account_local_state = account_local_state[0].get("key-value", [])
+                for data in account_local_state:
+                    key, value = data["key"], data["value"]
+                    # key must be in mapping
+                    if key not in b64_to_utf_keys:
+                        break
+                    if key == utf_to_b64_keys[pool_strings.asset1_id]:
+                        a1 = value["uint"]
+                    elif key == utf_to_b64_keys[pool_strings.asset2_id]:
+                        a2 = value["uint"]
+                    elif key == utf_to_b64_keys[manager_strings.validator_index]:
+                        vi = value["uint"]
+                    elif key == utf_to_b64_keys[pool_strings.pool]:
+                        p = value["uint"]
+                # has data for each field
+                if a1 and a2 and p and (vi != None):
+                    # compute address
+                    concat_array = [
+                        POOL_FACTORY_LOGIC_SIG_TEMPLATE_1,
+                        list(encode_varint(a1)),
+                        list(encode_varint(a2)),
+                        POOL_FACTORY_LOGIC_SIG_TEMPLATE_2,
+                        list(encode_varint(manager_app_id)),
+                        POOL_FACTORY_LOGIC_SIG_TEMPLATE_3,
+                        list(encode_varint(vi)),
+                        POOL_FACTORY_LOGIC_SIG_TEMPLATE_4
+                    ]
+                    result = list(reduce(lambda x,y: x+y, concat_array))
+                    address = logic.address(bytes(result))
+                    # check implied logic sig address matches opted in account address
+                    if address == account.get("address", None):
+                        pool_app_ids.append(p)
+
+        return pool_app_ids
 
 
 class AlgofiAMMTestnetClient(AlgofiAMMClient):
