@@ -1,9 +1,32 @@
 
 from enum import Enum
+from base64 import b64encode
 from .approval_programs import APPROVAL_PROGRAM_30BP_CONSTANT_PRODUCT, APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT, CLEAR_STATE_PROGRAM
+from ..contract_strings import algofi_pool_strings as pool_strings
+from ..contract_strings import algofi_manager_strings as manager_strings
 
 # constants
 ALGO_ASSET_ID = 1
+
+# valid pool app ids
+b64_to_utf_keys = {
+    b64encode(bytes(pool_strings.asset1_id, "utf-8")).decode("utf-8"): pool_strings.asset1_id,
+    b64encode(bytes(pool_strings.asset2_id, "utf-8")).decode("utf-8"): pool_strings.asset2_id,
+    b64encode(bytes(pool_strings.pool, "utf-8")).decode("utf-8"): pool_strings.pool,
+    b64encode(bytes(manager_strings.validator_index, "utf-8")).decode("utf-8"): manager_strings.validator_index,
+    b64encode(bytes(pool_strings.balance_1, "utf-8")).decode("utf-8"): pool_strings.balance_1,
+    b64encode(bytes(pool_strings.balance_2, "utf-8")).decode("utf-8"): pool_strings.balance_2,
+    b64encode(bytes(pool_strings.cumsum_volume_asset1, "utf-8")).decode("utf-8"): pool_strings.cumsum_volume_asset1,
+    b64encode(bytes(pool_strings.cumsum_volume_asset2, "utf-8")).decode("utf-8"): pool_strings.cumsum_volume_asset2,
+    b64encode(bytes(pool_strings.cumsum_volume_weighted_asset1_to_asset2_price, "utf-8")).decode("utf-8"): pool_strings.cumsum_volume_weighted_asset1_to_asset2_price,
+    b64encode(bytes(pool_strings.cumsum_volume_weighted_asset2_to_asset1_price, "utf-8")).decode("utf-8"): pool_strings.cumsum_volume_weighted_asset2_to_asset1_price,
+    b64encode(bytes(pool_strings.cumsum_time_weighted_asset2_to_asset1_price, "utf-8")).decode("utf-8"): pool_strings.cumsum_time_weighted_asset2_to_asset1_price,
+    b64encode(bytes(pool_strings.cumsum_time_weighted_asset1_to_asset2_price, "utf-8")).decode("utf-8"): pool_strings.cumsum_time_weighted_asset1_to_asset2_price,
+    b64encode(bytes(pool_strings.cumsum_fees_asset1, "utf-8")).decode("utf-8"): pool_strings.cumsum_fees_asset1,
+    b64encode(bytes(pool_strings.cumsum_fees_asset2, "utf-8")).decode("utf-8"): pool_strings.cumsum_fees_asset2
+}
+
+utf_to_b64_keys = {v: k for k, v in b64_to_utf_keys.items()}
 
 # enums
 class Network(Enum):

@@ -1,7 +1,7 @@
 from algosdk.v2client.algod import AlgodClient
 from algosdk.v2client.indexer import IndexerClient
-from .config import Network, POOL_FACTORY_LOGIC_SIG_TEMPLATE_1, POOL_FACTORY_LOGIC_SIG_TEMPLATE_2, POOL_FACTORY_LOGIC_SIG_TEMPLATE_3, \
-POOL_FACTORY_LOGIC_SIG_TEMPLATE_4
+from algosdk.logic import get_application_address
+from .config import Network, get_manager_application_id, b64_to_utf_keys, utf_to_b64_keys
 from .pool import Pool
 from .asset import Asset
 
@@ -31,7 +31,6 @@ class AlgofiAMMClient():
         self.network = network
         self.user_address = user_address
         self.manager_application_id = get_manager_application_id(network)
-        self.manager_address = get_application_address(self.manager_application_id)
 
     def get_pool(self, pool_type, asset1_id, asset2_id):
         """Returns a :class:`Pool` object for given assets and pool_type
@@ -161,7 +160,7 @@ class AlgofiAMMClient():
         accounts = []
         # get accounts opted in to
         while nextpage is not None:
-            account_data = self.indexer.accounts(limit=1000, next_page=nextpage, application_id=self.manager_app_id)
+            account_data = self.indexer.accounts(limit=1000, next_page=nextpage, application_id=self.manager_application_id)
             accounts_interim = account_data.get("accounts", [])
             if accounts_interim:
                 accounts.extend(accounts_interim)
@@ -190,18 +189,8 @@ class AlgofiAMMClient():
                 # has data for each field
                 if a1 and a2 and p and (vi != None):
                     # compute address
-                    concat_array = [
-                        POOL_FACTORY_LOGIC_SIG_TEMPLATE_1,
-                        list(encode_varint(a1)),
-                        list(encode_varint(a2)),
-                        POOL_FACTORY_LOGIC_SIG_TEMPLATE_2,
-                        list(encode_varint(manager_app_id)),
-                        POOL_FACTORY_LOGIC_SIG_TEMPLATE_3,
-                        list(encode_varint(vi)),
-                        POOL_FACTORY_LOGIC_SIG_TEMPLATE_4
-                    ]
-                    result = list(reduce(lambda x,y: x+y, concat_array))
-                    address = logic.address(bytes(result))
+                    logic_sig_bytes = generate_logic_sig(a1, a3, self.manager_application_id, vi)
+                    address = logic.address(logic_sig_bytes)
                     # check implied logic sig address matches opted in account address
                     if address == account.get("address", None):
                         pool_app_ids.append(p)
