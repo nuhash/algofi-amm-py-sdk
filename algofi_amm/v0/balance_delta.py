@@ -17,9 +17,8 @@ class BalanceDelta():
         self.asset2_delta = asset2_delta
         self.lp_delta = lp_delta
 
+        # Took out the portion about lp_circulation, it is not part of the pool class anymore
         if (lp_delta == 0):
-            self.price_delta = 0
-        elif (pool.lp_circulation == 0):
             self.price_delta = 0
         else:
             starting_price_ratio = pool.asset1_balance / pool.asset2_balance

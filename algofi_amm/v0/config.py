@@ -1,9 +1,9 @@
 
 from enum import Enum
 from base64 import b64encode
-from .approval_programs import APPROVAL_PROGRAM_30BP_CONSTANT_PRODUCT, APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT, CLEAR_STATE_PROGRAM
-from ..contract_strings import algofi_pool_strings as pool_strings
-from ..contract_strings import algofi_manager_strings as manager_strings
+from approval_programs import APPROVAL_PROGRAM_30BP_CONSTANT_PRODUCT, APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT, CLEAR_STATE_PROGRAM
+from contract_strings import algofi_pool_strings as pool_strings
+from contract_strings import algofi_manager_strings as manager_strings
 
 # constants
 ALGO_ASSET_ID = 1
