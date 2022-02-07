@@ -9,7 +9,7 @@ setuptools.setup(
     description="Algofi AMM Python SDK",
     author="Algofi",
     author_email="founders@algofi.org",
-    version="0.0.1",
+    version="0.0.2",
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="MIT",
