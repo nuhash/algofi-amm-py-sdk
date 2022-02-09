@@ -3,6 +3,8 @@ from algosdk.future.transaction import PaymentTxn, AssetTransferTxn, assign_grou
 from algosdk.error import AlgodHTTPError
 from base64 import b64decode
 
+PARAMETER_SCALE_FACTOR = int(1e6)
+
 def int_to_bytes(i):
     """Convert int to bytes
     """

@@ -1,8 +1,8 @@
 from algosdk.v2client.algod import AlgodClient
 from algosdk.v2client.indexer import IndexerClient
-from config import Network
-from pool import Pool
-from asset import Asset
+from .config import Network
+from .pool import Pool
+from .asset import Asset
 
 class AlgofiAMMClient():
 

@@ -3,10 +3,10 @@ import time
 import math
 from algosdk.logic import get_application_address
 from algosdk.future.transaction import ApplicationNoOpTxn
-from config import get_swap_fee, get_manager_application_id
-from balance_delta import BalanceDelta
-from contract_strings import algofi_pool_strings as pool_strings
-from utils import PARAMETER_SCALE_FACTOR, TransactionGroup, get_params, int_to_bytes, get_payment_txn
+from .config import get_swap_fee, get_manager_application_id
+from .balance_delta import BalanceDelta
+from .contract_strings import algofi_pool_strings as pool_strings
+from .utils import PARAMETER_SCALE_FACTOR, TransactionGroup, get_params, int_to_bytes, get_payment_txn
 import sqlite3
 
 
@@ -177,7 +177,7 @@ class Pool():
         # We assume that the pool is not empty so we will not check for lp_circulation here.
         # Also because lp_circulation requires a call to the indexer.
         
-        swap_in_amount_less_fees = swap_in_amount - int(math.ceil(swap_in_amount * self.swap_fee))
+        swap_in_amount_less_fees = swap_in_amount - int(swap_in_amount * self.swap_fee) - 1
 
         if (swap_in_asset_id == self.asset1.asset_id):
             swap_out_amount = int((self.asset2_balance * swap_in_amount_less_fees) / (self.asset1_balance + swap_in_amount_less_fees))

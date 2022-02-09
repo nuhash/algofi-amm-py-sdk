@@ -1,7 +1,7 @@
 from algosdk import mnemonic
 from asset import Asset
 from client import AlgofiAMMTestnetClient
-from config import PoolType
+from .config import PoolType
 import os 
 from dotenv import dotenv_values
 import time
