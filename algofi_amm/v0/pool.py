@@ -183,5 +183,8 @@ class Pool():
             swap_out_amount = int((self.asset2_balance * swap_in_amount_less_fees) / (self.asset1_balance + swap_in_amount_less_fees))
         else:
             swap_out_amount = int((self.asset1_balance * swap_in_amount_less_fees) / (self.asset2_balance + swap_in_amount_less_fees))
-        
-        return BalanceDelta(self, swap_out_amount, -1 * swap_in_amount, 0)
+
+        if (swap_in_asset_id == self.asset1.asset_id):
+            return BalanceDelta(self, -1 * swap_in_amount, swap_out_amount, 0)
+        else:
+            return BalanceDelta(self, swap_out_amount, -1 * swap_in_amount, 0)
