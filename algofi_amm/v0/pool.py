@@ -578,9 +578,7 @@ class Pool():
         if (swap_in_asset_id == self.asset1.asset_id):
             return BalanceDelta(self, -1 * swap_in_amount, swap_out_amount, 0)
         else:
-            return BalanceDelta(self, swap_out_amount, swap_out_amount, 0)
-        
-        return BalanceDelta(self, swap_out_amount, -1 * swap_in_amount, 0)
+            return BalanceDelta(self, swap_out_amount, -1 * swap_in_amount, 0)
 
     def get_swap_for_exact_quote(self, swap_out_asset_id, swap_out_amount):
         """Get swap for exact quote for a given asset id and swap amount
