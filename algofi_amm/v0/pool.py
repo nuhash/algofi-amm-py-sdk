@@ -33,6 +33,7 @@ class Pool():
         self.db_name = db_name
         self.asset1 = asset1
         self.asset2 = asset2
+        self.pool_type = pool_type
 
         # hardcoding flash loan fee for now
         self.flash_loan_fee = 1000
@@ -53,11 +54,12 @@ class Pool():
         conn = sqlite3.connect('./{}'.format(self.db_name))
         c = conn.cursor()
         c.execute("""
-		SELECT * FROM amm_pool_snapshots 
-		WHERE asset_1_id = {} AND asset_2_id = {}
-        """.format(self.asset1.asset_id, self.asset2.asset_id))
+		SELECT * FROM amm_pool_snapshots JOIN amm_pools ON
+        amm_pool_snapshots.pool_app_id=amm_pools.pool_app_id
+		WHERE amm_pool_snapshots.asset_1_id = {} AND amm_pool_snapshots.asset_2_id = {} 
+		AND amm_pools.validator_index = {}
+        """.format(self.asset1.asset_id, self.asset2.asset_id, self.pool_type.value))
         data = c.fetchall()
-        conn.commit()
         conn.close()
         if len(data) == 0:
             raise Exception("Pool does not exist!")
@@ -75,7 +77,7 @@ class Pool():
         # set asset balances
         self.asset1_balance = record[4]
         self.asset2_balance = record[5]
-    
+
     def get_swap_exact_for_txns(self, sender, swap_in_asset, swap_in_amount, min_amount_to_receive):
         """Get group transaction for swap exact for transaction. An exact amount of the asset
         to be swapped is sent via a :class:`PaymentTxn` or :class:`AssetTransferTxn`. 
@@ -114,7 +116,7 @@ class Pool():
 
         return TransactionGroup([txn0, txn1])
 
-    
+
     def get_flash_loan_txns(self, sender, flash_loan_asset, flash_loan_amount, group_transaction):
         """Get group transaction for swap exact for transaction
 
@@ -161,8 +163,8 @@ class Pool():
             transactions[i].group = None
 
         return TransactionGroup([txn0] + group_transaction.transactions + [txn1])
-    
-    
+
+
     def get_swap_exact_for_quote(self, swap_in_asset_id, swap_in_amount):
         """Get swap exact for quote for a given asset id and swap amount
 
@@ -176,7 +178,7 @@ class Pool():
 
         # We assume that the pool is not empty so we will not check for lp_circulation here.
         # Also because lp_circulation requires a call to the indexer.
-        
+
         swap_in_amount_less_fees = swap_in_amount - int(swap_in_amount * self.swap_fee) - 1
 
         if (swap_in_asset_id == self.asset1.asset_id):

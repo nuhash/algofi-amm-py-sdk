@@ -55,7 +55,7 @@ class AlgofiAMMClient():
             pool = Pool(self.algod, self.network, pool_type, asset1, asset2, db_name)
         else:
             pool = Pool(self.algod, self.network, pool_type, asset2, asset1, db_name)
-			
+
         return pool
 
     def get_asset(self, asset_id):
@@ -69,6 +69,39 @@ class AlgofiAMMClient():
 
         asset = Asset(self, asset_id)
         return asset
+
+    def get_user_info(self, address=None):
+        """Returns a dictionary of information about the user
+        :param address: address to get info for
+        :type address: string
+        :return: A dict of information of the user
+        :rtype: dict
+        """
+
+        if not address:
+            address = self.user_address
+        if address:
+            return self.algod.account_info(address)
+        else:
+            raise Exception("user_address has not been specified")
+
+    def is_opted_into_asset(self, asset, address=None):
+        """Returns a boolean if the user address is opted into an asset with id asset_id
+        :param address: address to get info for
+        :type address: string
+        :param asset: asset object representing asa
+        :type asset: :class:`Asset`
+        :return: boolean if user is opted into an asset
+        :rtype: boolean
+        """
+
+        if asset.asset_id == 1:
+            return True
+        else:
+            if not address:
+                address = self.user_address
+            user_info = self.get_user_info(address)
+            return asset.asset_id in [x['asset-id'] for x in user_info['assets']]
 
 
 class AlgofiAMMTestnetClient(AlgofiAMMClient):
