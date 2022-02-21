@@ -51,6 +51,16 @@ class Asset():
                 "freeze": self.freeze, "manager": self.manager, "name": self.name, "reserve": self.reserve, "total": self.total,
                 "unit_name": self.unit_name, "url": self.url})
 
+    def get_scaled_amount(self, amount):
+        """Returns an integer representation of asset amount scaled by asset's decimals
+        :param amount: amount of asset
+        :type amount: float
+        :return: int amount of asset scaled by decimals
+        :rtype: int
+        """
+
+        return int(amount * 10**self.decimals)
+
     def refresh_price(self):
         """Returns the dollar price of the asset with a simple matching algorithm
         """

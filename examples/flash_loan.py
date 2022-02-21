@@ -13,11 +13,16 @@ user = dotenv_values(ENV_PATH)
 sender = mnemonic.to_public_key(user['mnemonic'])
 key =  mnemonic.to_private_key(user['mnemonic'])
 
-amm_client = AlgofiAMMTestnetClient(user_address=sender)
+IS_MAINNET = False
+if IS_MAINNET:
+    amm_client = AlgofiAMMMainnetClient(user_address=sender)
+else:
+    amm_client = AlgofiAMMTestnetClient(user_address=sender)
+
 # SET POOL ASSETS + AMOUNTS
-asset1_id = 62482274
-asset2_id = 62482993
-swap_input_asset = Asset(amm_client, 62482274)
+asset1_id = 1
+asset2_id = 42281306
+swap_input_asset = Asset(amm_client, asset1_id)
 swap_asset_amount = 100
 flash_loan_asset = swap_input_asset
 flash_loan_amount = 100

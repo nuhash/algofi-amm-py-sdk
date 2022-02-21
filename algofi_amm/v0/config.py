@@ -1,7 +1,8 @@
 
 from enum import Enum
 from base64 import b64encode
-from .approval_programs import APPROVAL_PROGRAM_30BP_CONSTANT_PRODUCT, APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT, CLEAR_STATE_PROGRAM
+from .approval_programs import MAINNET_APPROVAL_PROGRAM_25BP_CONSTANT_PRODUCT, MAINNET_APPROVAL_PROGRAM_75BP_CONSTANT_PRODUCT, \
+TESTNET_APPROVAL_PROGRAM_30BP_CONSTANT_PRODUCT, TESTNET_APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT, CLEAR_STATE_PROGRAM
 from ..contract_strings import algofi_pool_strings as pool_strings
 from ..contract_strings import algofi_manager_strings as manager_strings
 
@@ -39,8 +40,10 @@ class Network(Enum):
 class PoolType(Enum):
     """Pool type enum
     """
-    CONSTANT_PRODUCT_30BP_FEE = 0
-    CONSTANT_PRODUCT_100BP_FEE = 1
+    CONSTANT_PRODUCT_25BP_FEE = 1
+    CONSTANT_PRODUCT_30BP_FEE = 2
+    CONSTANT_PRODUCT_75BP_FEE = 3
+    CONSTANT_PRODUCT_100BP_FEE = 4
 
 
 class PoolStatus(Enum):
@@ -54,7 +57,7 @@ class PoolStatus(Enum):
 def get_validator_index(network, pool_type):
     """Gets the validator index for a given pool type and network
 
-    :param network: network ("testnet" or "mainnet")
+    :param network: network :class:`Network` ("testnet" or "mainnet")
     :type network: str
     :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)
     :type pool_type: :class:`PoolType`
@@ -62,25 +65,39 @@ def get_validator_index(network, pool_type):
     :rtype: int
     """
 
-    if (pool_type == PoolType.CONSTANT_PRODUCT_30BP_FEE):
-        return 0
-    elif (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
-        return 1
+    if network == Network.MAINNET:
+        if (pool_type == PoolType.CONSTANT_PRODUCT_25BP_FEE):
+            return 0
+        elif (pool_type == PoolType.CONSTANT_PRODUCT_75BP_FEE):
+            return 1
+    elif network == Network.TESTNET:
+        if (pool_type == PoolType.CONSTANT_PRODUCT_30BP_FEE):
+            return 0
+        elif (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
+            return 1
 
 
-def get_approval_program_by_pool_type(pool_type):
+def get_approval_program_by_pool_type(pool_type, network):
     """Gets the approval program for a given pool type
 
+    :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)
+    :type pool_type: :class:`PoolType`
     :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)
     :type pool_type: :class:`PoolType`
     :return: approval program bytecode for given pool type as list of ints
     :rtype: list
     """
 
-    if (pool_type == PoolType.CONSTANT_PRODUCT_30BP_FEE):
-        return bytes(APPROVAL_PROGRAM_30BP_CONSTANT_PRODUCT)
-    elif (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
-        return bytes(APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT)
+    if network == Network.MAINNET:
+        if (pool_type == PoolType.CONSTANT_PRODUCT_25BP_FEE):
+            return bytes(MAINNET_APPROVAL_PROGRAM_25BP_CONSTANT_PRODUCT)
+        elif (pool_type == PoolType.CONSTANT_PRODUCT_75BP_FEE):
+            return bytes(MAINNET_APPROVAL_PROGRAM_75BP_CONSTANT_PRODUCT)
+    elif network == Network.TESTNET:
+        if (pool_type == PoolType.CONSTANT_PRODUCT_30BP_FEE):
+            return bytes(TESTNET_APPROVAL_PROGRAM_30BP_CONSTANT_PRODUCT)
+        elif (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
+            return bytes(TESTNET_APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT)
 
 
 def get_clear_state_program():
@@ -96,14 +113,14 @@ def get_clear_state_program():
 def get_manager_application_id(network):
     """Gets the manager application id for the given network
 
-    :param network: network ("testnet" or "mainnet")
+    :param network: network :class:`Network` ("testnet" or "mainnet")
     :type network: str
     :return: manager application id for the given network
     :rtype: int
     """
 
     if (network == Network.MAINNET):
-        return 12345678
+        return 605753404
     elif (network == Network.TESTNET):
         return 66008735
 
@@ -117,16 +134,20 @@ def get_swap_fee(pool_type):
     :rtype: float
     """
 
-    if (pool_type == PoolType.CONSTANT_PRODUCT_30BP_FEE):
+    if (pool_type == PoolType.CONSTANT_PRODUCT_25BP_FEE):
+        return 0.0025
+    elif (pool_type == PoolType.CONSTANT_PRODUCT_30BP_FEE):
         return 0.003
-    else:
+    elif (pool_type == PoolType.CONSTANT_PRODUCT_75BP_FEE):
+        return 0.0075
+    elif (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
         return 0.01
 
 
 def get_usdc_asset_id(network):
     """Gets asset id of USDC for a given network
 
-    :param network: network ("testnet" or "mainnet")
+    :param network: network :class:`Network` ("testnet" or "mainnet")
     :type network: str
     :return: asset id of USDC for a given network
     :rtype: int
@@ -134,14 +155,14 @@ def get_usdc_asset_id(network):
 
     if (network == Network.MAINNET):
         return 31566704
-    else:
+    elif (network == Network.TESTNET):
         return 51435943
 
 
 def get_stbl_asset_id(network):
     """Gets asset id of STBL for a given network
 
-    :param network: network ("testnet" or "mainnet")
+    :param network: network :class:`Network` ("testnet" or "mainnet")
     :type network: str
     :return: asset id of STBL for a given network
     :rtype: int
@@ -149,5 +170,5 @@ def get_stbl_asset_id(network):
 
     if (network == Network.MAINNET):
         return 465865291
-    else:
+    elif (network == Network.TESTNET):
         return 51437163
