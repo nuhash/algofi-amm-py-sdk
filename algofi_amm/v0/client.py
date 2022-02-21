@@ -21,7 +21,7 @@ class AlgofiAMMClient():
         :type historical_indexer_client: :class:`IndexerClient`
         :param user_address: user address
         :type user_address: str
-        :param network: network ("testnet" or "mainnet")
+        :param network: network :class:`Network` ("testnet" or "mainnet")
         :type network: str
         :return: string representation of asset
         :rtype: str
@@ -116,10 +116,13 @@ class AlgofiAMMClient():
         :rtype: boolean
         """
 
-        if not address:
-            address = self.user_address
-        user_info = self.get_user_info(address)
-        return asset.asset_id in [x['asset-id'] for x in user_info['assets']]
+        if asset.asset_id == 1:
+            return True
+        else:
+            if not address:
+                address = self.user_address
+            user_info = self.get_user_info(address)
+            return asset.asset_id in [x['asset-id'] for x in user_info['assets']]
     
     def get_user_balances(self, address=None):
         """Returns a dictionary of user balances by asset id

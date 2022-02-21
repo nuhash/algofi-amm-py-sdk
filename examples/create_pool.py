@@ -11,9 +11,13 @@ user = dotenv_values(ENV_PATH)
 sender = mnemonic.to_public_key(user['mnemonic'])
 key =  mnemonic.to_private_key(user['mnemonic'])
 
-amm_client = AlgofiAMMTestnetClient()
-asset1_id = 62482274
-asset2_id = 62482993
+IS_MAINNET = False
+if IS_MAINNET:
+    amm_client = AlgofiAMMMainnetClient()
+else:
+    amm_client = AlgofiAMMTestnetClient()
+asset1_id = 1
+asset2_id = 42281306
 pool = amm_client.get_pool(PoolType.CONSTANT_PRODUCT_30BP_FEE, asset1_id, asset2_id)
 
 if pool.pool_status == PoolStatus.ACTIVE:

@@ -4,7 +4,7 @@ import math
 from algosdk.logic import get_application_address
 from algosdk.future.transaction import LogicSigAccount, LogicSigTransaction, OnComplete, StateSchema, ApplicationCreateTxn, \
     ApplicationOptInTxn, ApplicationNoOpTxn, OnComplete
-from .config import PoolStatus, get_validator_index, get_approval_program_by_pool_type, get_clear_state_program, get_swap_fee, get_manager_application_id
+from .config import PoolStatus, Network, get_validator_index, get_approval_program_by_pool_type, get_clear_state_program, get_swap_fee, get_manager_application_id
 from .balance_delta import BalanceDelta
 from .logic_sig_generator import generate_logic_sig
 from ..contract_strings import algofi_manager_strings as manager_strings
@@ -23,7 +23,7 @@ class Pool():
         :type indexer_client: :class:`IndexerClient`
         :param historical_indexer_client: a :class:`IndexerClient` object for interacting with the network (historical state)
         :type historical_indexer_client: :class:`IndexerClient`
-        :param network: network ("testnet" or "mainnet")
+        :param network: network :class:`Network` ("testnet" or "mainnet")
         :type network: str
         :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)
         :type pool_type: :class:`PoolType`
@@ -163,10 +163,10 @@ class Pool():
         
         params = get_params(self.algod)
 
-        approval_program = get_approval_program_by_pool_type(self.pool_type)
+        approval_program = get_approval_program_by_pool_type(self.pool_type, self.network)
         clear_state_program = get_clear_state_program()
 
-        global_schema = StateSchema(num_uints=60, num_byte_slices=4)
+        global_schema = StateSchema(num_uints=32, num_byte_slices=4)
         local_schema = StateSchema(num_uints=0, num_byte_slices=0)
 
         txn0 = ApplicationCreateTxn(
@@ -177,7 +177,7 @@ class Pool():
             clear_program=clear_state_program,
             global_schema=global_schema,
             local_schema=local_schema,
-            app_args=[int_to_bytes(self.asset1.asset_id), int_to_bytes(self.asset2.asset_id)],
+            app_args=[int_to_bytes(self.asset1.asset_id), int_to_bytes(self.asset2.asset_id), int_to_bytes(self.validator_index)],
             foreign_apps=[self.manager_application_id],
             note=int(time.time() * 1000 * 1000).to_bytes(8, 'big'),
             extra_pages=3
@@ -206,10 +206,16 @@ class Pool():
         params = get_params(self.algod)
 
         # fund manager
-        txn0 = get_payment_txn(params, sender, self.manager_address, amount=500000)
+        if self.network == Network.MAINNET:
+            txn0 = get_payment_txn(params, sender, self.manager_address, amount=400000)
+        else:
+            txn0 = get_payment_txn(params, sender, self.manager_address, amount=500000)
 
         # fund logic sig
-        txn1 = get_payment_txn(params, sender, self.logic_sig.address(), amount=835000)
+        if self.network == Network.MAINNET:
+            txn1 = get_payment_txn(params, sender, self.logic_sig.address(), amount=450000)
+        else:
+            txn1 = get_payment_txn(params, sender, self.logic_sig.address(), amount=835000)
 
         # opt logic sig into manager
         params.fee = 2000
