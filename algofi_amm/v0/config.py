@@ -103,7 +103,7 @@ def get_manager_application_id(network):
     """
 
     if (network == Network.MAINNET):
-        return 12345678
+        return 605753404
     elif (network == Network.TESTNET):
         return 66008735
 
@@ -118,9 +118,9 @@ def get_swap_fee(pool_type):
     """
 
     if (pool_type == PoolType.CONSTANT_PRODUCT_30BP_FEE):
-        return 0.003
+        return 0.0025
     else:
-        return 0.01
+        return 0.0075
 
 
 def get_usdc_asset_id(network):
