@@ -17,7 +17,7 @@ class BalanceDelta():
         self.asset2_delta = asset2_delta
         self.lp_delta = lp_delta
 
-        if (lp_delta == 0):
+        if (lp_delta != 0):
             self.price_delta = 0
         elif (pool.lp_circulation == 0):
             self.price_delta = 0
