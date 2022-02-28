@@ -18,6 +18,8 @@ class Asset():
         """
 
         self.asset_id = asset_id
+        self.amm_client = amm_client
+
         if asset_id == 1:
             self.creator = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
             self.decimals = ALGO_DECIMALS
