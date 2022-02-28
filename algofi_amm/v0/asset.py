@@ -1,6 +1,6 @@
 
 import pprint
-from .config import PoolType, PoolStatus, get_usdc_asset_id, get_stbl_asset_id, ALGO_ASSET_ID
+from .config import PoolType, PoolStatus, Network, get_usdc_asset_id, get_stbl_asset_id, ALGO_ASSET_ID
 
 # asset decimals
 ALGO_DECIMALS = 6
@@ -18,6 +18,8 @@ class Asset():
         """
 
         self.asset_id = asset_id
+        self.amm_client = amm_client
+
         if asset_id == 1:
             self.creator = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
             self.decimals = ALGO_DECIMALS
@@ -68,20 +70,22 @@ class Asset():
         usdc_asset_id = get_usdc_asset_id(self.amm_client.network)
         stbl_asset_id = get_stbl_asset_id(self.amm_client.network)
 
-        usdc_pool = self.amm_client.get_pool(PoolType.CONSTANT_PRODUCT_30BP_FEE, self.asset_id, usdc_asset_id)
+        # is testnet
+        pool_type = PoolType.CONSTANT_PRODUCT_30BP_FEE if (self.amm_client.network == Network.TESTNET) else PoolType.CONSTANT_PRODUCT_25BP_FEE
+        usdc_pool = self.amm_client.get_pool(pool_type, self.asset_id, usdc_asset_id)
         if (usdc_pool == PoolStatus.ACTIVE):
             self.price = usdc_pool.get_pool_price(self.asset_id) * (10**(self.decimals - USDC_DECIMALS))
             return
         
-        stbl_pool = self.amm_client.get_pool(PoolType.CONSTANT_PRODUCT_30BP_FEE, self.asset_id, stbl_asset_id)
+        stbl_pool = self.amm_client.get_pool(pool_type, self.asset_id, stbl_asset_id)
         if (stbl_pool.pool_status == PoolStatus.ACTIVE):
             self.price = (stbl_pool.get_pool_price(self.asset_id)) * (10**(self.decimals - STBL_DECIMALS))
             return
         
-        algo_pool = self.amm_client.get_pool(PoolType.CONSTANT_PRODUCT_30BP_FEE, self.asset_id, ALGO_ASSET_ID)
+        algo_pool = self.amm_client.get_pool(pool_type, self.asset_id, ALGO_ASSET_ID)
         if (algo_pool.pool_status == PoolStatus.ACTIVE):
             price_in_algo = algo_pool.get_pool_price(self.asset_id) * (10**(self.decimals - ALGO_DECIMALS))
-            usdc_algo_pool = self.amm_client.get_pool(PoolType.CONSTANT_PRODUCT_30BP_FEE, usdc_asset_id, ALGO_ASSET_ID)
+            usdc_algo_pool = self.amm_client.get_pool(pool_type, usdc_asset_id, ALGO_ASSET_ID)
             if (usdc_algo_pool.pool_status == PoolStatus.ACTIVE):
                 self.price = price_in_algo * usdc_algo_pool.get_pool_price(ALGO_ASSET_ID)
                 return

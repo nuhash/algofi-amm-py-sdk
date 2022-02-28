@@ -24,7 +24,7 @@ class Pool():
         :param historical_indexer_client: a :class:`IndexerClient` object for interacting with the network (historical state)
         :type historical_indexer_client: :class:`IndexerClient`
         :param network: network :class:`Network` ("testnet" or "mainnet")
-        :type network: str
+        :type network: class:`Network` 
         :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)
         :type pool_type: :class:`PoolType`
         :param asset1: a :class:`Asset` representing the first asset of the pool
