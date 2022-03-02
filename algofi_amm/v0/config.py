@@ -44,6 +44,7 @@ class PoolType(Enum):
     CONSTANT_PRODUCT_30BP_FEE = 2
     CONSTANT_PRODUCT_75BP_FEE = 3
     CONSTANT_PRODUCT_100BP_FEE = 4
+    NANOSWAP = 5
 
 
 class PoolStatus(Enum):
@@ -75,6 +76,8 @@ def get_validator_index(network, pool_type):
             return 0
         elif (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
             return 1
+        elif (pool_type == PoolType.NANOSWAP):
+            return -1
 
 
 def get_approval_program_by_pool_type(pool_type, network):
@@ -142,6 +145,8 @@ def get_swap_fee(pool_type):
         return 0.0075
     elif (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
         return 0.01
+    elif (pool_type == PoolType.NANOSWAP):
+        return 0.0001 # TODO
 
 
 def get_usdc_asset_id(network):
