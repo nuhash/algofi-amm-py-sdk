@@ -143,7 +143,11 @@ class Pool():
             self.future_amplification_factor = pool_state[pool_strings.future_amplification_factor]
             self.initial_amplification_factor_time = pool_state[pool_strings.initial_amplification_factor_time]
             self.future_amplification_factor_time = pool_state[pool_strings.future_amplification_factor_time]
-            self.t = self.algod.clinet().status()['latest-time']
+            status = self.algod.status()
+            last_round = status["last-round"]
+            block = self.algod.block_info(last_round)
+            timestamp = block["block"]["ts"]
+            self.t = timestamp
 
     def get_pool_price(self, asset_id):
         """Gets the price of the pool in terms of the asset with given asset_id
@@ -226,10 +230,10 @@ class Pool():
         :rtype: :class:`TransactionGroup`
         """
 
-        if (self.pool_status == PoolStatus.ACTIVE):
+        if self.pool_status == PoolStatus.ACTIVE:
             raise Exception("Pool already active - cannot generate initialize pool txn")
 
-        if (self.pool_status == PoolType.NANOSWAP:
+        if self.pool_status == PoolType.NANOSWAP:
             raise Exception("Nanoswap pool creation is not supported")
         
         params = get_params(self.algod)
@@ -285,7 +289,7 @@ class Pool():
         params = get_params(self.algod)
         return get_payment_txn(params, sender, sender, amount=int(0), asset_id=self.lp_asset_id)
     
-    def get_pool_txns(self, sender, asset1_amount, asset2_amount, maximum_slippage):
+    def get_pool_txns(self, sender, asset1_amount, asset2_amount, maximum_slippage, fee=3000):
         """Get group transaction for pooling with given asset amounts and maximum slippage.
         The two assets are sent via two :class:`PaymentTxn` / :class:`AssetTransferTxn`. Then, a pool call
         is made from which the LP tokens are issued via inner asset transfer txn. Lastly,
@@ -315,7 +319,7 @@ class Pool():
         txn1 = get_payment_txn(params, sender, self.address, asset2_amount, self.asset2.asset_id)
 
         # pool
-        params.fee = 3000
+        params.fee = fee
         txn2 = ApplicationNoOpTxn(
             sender=sender,
             sp=params,
@@ -390,7 +394,7 @@ class Pool():
 
         return TransactionGroup([txn0, txn1, txn2])
     
-    def get_swap_exact_for_txns(self, sender, swap_in_asset, swap_in_amount, min_amount_to_receive):
+    def get_swap_exact_for_txns(self, sender, swap_in_asset, swap_in_amount, min_amount_to_receive, fee=2000):
         """Get group transaction for swap exact for transaction. An exact amount of the asset
         to be swapped is sent via a :class:`PaymentTxn` or :class:`AssetTransferTxn`. 
         Then, a swap exact for call is made from which the output asset is sent via inner transaction.
@@ -414,7 +418,7 @@ class Pool():
         txn0 = get_payment_txn(params, sender, self.address, swap_in_amount, swap_in_asset.asset_id)
 
         # swap exact for
-        params.fee = 2000
+        params.fee = fee
         foreign_assets = [self.asset2.asset_id] if swap_in_asset.asset_id == self.asset1.asset_id else ([self.asset1.asset_id] if self.asset1.asset_id != 1 else [])
         txn1 = ApplicationNoOpTxn(
             sender=sender,
@@ -428,7 +432,7 @@ class Pool():
 
         return TransactionGroup([txn0, txn1])
 
-    def get_swap_for_exact_txns(self, sender, swap_in_asset, swap_in_amount, amount_to_receive):
+    def get_swap_for_exact_txns(self, sender, swap_in_asset, swap_in_amount, amount_to_receive, fee=2000):
         """Get group transaction for swap for exact transaction. An amount of the asset to be
         swapped is sent via a :class:`PaymentTxn` or :class:`AssetTransferTxn`. Then, swap for exact
         call is made to swap for an exact amount of the output asset. If a sufficient amount
@@ -528,9 +532,6 @@ class Pool():
 
     @property
     def amplification_factor(self):
-        if not self.future_amplification_factor_time:
-            return self.initial_amplification_factor
-
         if self.t < self.future_amplification_factor_time:
             return int(self.initial_amplification_factor +
                        (self.future_amplification_factor - self.initial_amplification_factor) * (self.t - self.initial_amplification_factor_time)
@@ -550,14 +551,15 @@ class Pool():
         """
 
         if self.pool_type == PoolType.NANOSWAP:
-            lps_issued = int(get_D([asset2_pooled_amount, asset2_pooled_amount], self.amplification_factor))
+            lps_issued, num_iter = get_D([asset2_pooled_amount, asset2_pooled_amount], self.amplification_factor)
         else:
+            num_iter = 0
             if (asset1_pooled_amount * asset2_pooled_amount > 2**64-1):
                 lps_issued = int((asset1_pooled_amount)**(0.5)) * int((asset2_pooled_amount)**(0.5))
             else:
                 lps_issued = int((asset1_pooled_amount * asset2_pooled_amount)**(0.5))
         
-        return BalanceDelta(self, -1 * asset1_pooled_amount, -1 * asset2_pooled_amount, lps_issued)
+        return BalanceDelta(self, -1 * asset1_pooled_amount, -1 * asset2_pooled_amount, lps_issued, num_iter)
     
     def get_pool_quote(self, asset_id, asset_amount):
         """Get full pool quote for a given asset id and amount
@@ -573,7 +575,6 @@ class Pool():
         if (self.lp_circulation == 0):
             raise Exception("Error: pool is empty")
 
-        
         if (asset_id == self.asset1.asset_id):
             asset1_pooled_amount = asset_amount
             asset2_pooled_amount = int(asset1_pooled_amount * self.asset2_balance / self.asset1_balance)
@@ -582,13 +583,15 @@ class Pool():
             asset1_pooled_amount = int(asset2_pooled_amount * self.asset1_balance / self.asset2_balance)
 
         if self.pool_type == PoolType.NANOSWAP:
-            D0 = int(get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor))
-            D1 = int(get_D([self.asset1_balance + asset1_pooled_amount, self.asset2_balance + asset2_pooled_amount], self.amplification_factor))
+            D0, num_iter_D0 = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
+            D1, num_iter_D1 = get_D([self.asset1_balance + asset1_pooled_amount, self.asset2_balance + asset2_pooled_amount], self.amplification_factor)
             lps_issued = self.lp_circulation * (D1 - D0) / D0
+            num_iter = num_iter_D0 + num_iter_D1
         else:
             lps_issued = int(asset1_pooled_amount * self.lp_circulation / self.asset1_balance)
+            num_iter = 0
 
-        return BalanceDelta(self, -1 * asset1_pooled_amount, -1 * asset2_pooled_amount, lps_issued)
+        return BalanceDelta(self, -1 * asset1_pooled_amount, -1 * asset2_pooled_amount, lps_issued, num_iter)
     
     def get_burn_quote(self, lp_amount):
         """Get burn quote for a given amount of lps to burn
@@ -629,20 +632,24 @@ class Pool():
 
         if (swap_in_asset_id == self.asset1.asset_id):
             if self.pool_type == PoolType.NANOSWAP:
-                D = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
-                y = get_y(0, 1, self.asset1_balance + swap_in_amount_less_fees, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
+                D, num_iter_D = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
+                y, num_iter_y = get_y(0, 1, self.asset1_balance + swap_in_amount_less_fees, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
                 swap_out_amount = self.asset2_balance - y
+                num_iter = num_iter_D + num_iter_y
             else:
                 swap_out_amount = int((self.asset2_balance * swap_in_amount_less_fees) / (self.asset1_balance + swap_in_amount_less_fees))
-            return BalanceDelta(self, -1 * swap_in_amount, swap_out_amount, 0)
+                num_iter = 0
+            return BalanceDelta(self, -1 * swap_in_amount, swap_out_amount, 0, num_iter)
         else:
             if self.pool_type == PoolType.NANOSWAP:
-                D = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
-                y = get_y(1, 0, self.asset2_balance + swap_in_amount_less_fees, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
+                D, num_iter_D = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
+                y, num_iter_y = get_y(1, 0, self.asset2_balance + swap_in_amount_less_fees, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
                 swap_out_amount = self.asset1_balance - y
+                num_iter = num_iter_D + num_iter_y
             else:
                 swap_out_amount = int((self.asset1_balance * swap_in_amount_less_fees) / (self.asset2_balance + swap_in_amount_less_fees))
-            return BalanceDelta(self, swap_out_amount, -1 * swap_in_amount, 0)
+                num_iter = 0
+            return BalanceDelta(self, swap_out_amount, -1 * swap_in_amount, 0, num_iter)
 
     def get_swap_for_exact_quote(self, swap_out_asset_id, swap_out_amount):
         """Get swap for exact quote for a given asset id and swap amount
@@ -660,22 +667,26 @@ class Pool():
         
         if (swap_out_asset_id == self.asset1.asset_id):
             if self.pool_type == PoolType.NANOSWAP:
-                D = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
-                y = get_y(0, 1, self.asset1_balance - swap_out_amount, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
+                D, num_iter_D = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
+                y, num_iter_y = get_y(0, 1, self.asset1_balance - swap_out_amount, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
                 swap_in_amount_less_fees = y -  self.asset2_balance
+                num_iter = num_iter_D + num_iter_y
             else:
                 swap_in_amount_less_fees = int((self.asset2_balance * swap_out_amount) / (self.asset1_balance - swap_out_amount)) - 1
+                num_iter = 0
         else:
             if self.pool_type == PoolType.NANOSWAP:
-                D = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
-                y = get_y(1, 0, self.asset2_balance - swap_out_amount, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
+                D, num_iter_D = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
+                y, num_iter_y = get_y(1, 0, self.asset2_balance - swap_out_amount, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
                 swap_in_amount_less_fees = y - self.asset1_balance
+                num_iter = num_iter_D + num_iter_y
             else:
                 swap_in_amount_less_fees = int((self.asset1_balance * swap_out_amount) / (self.asset2_balance - swap_out_amount)) - 1
+                num_iter = 0
 
         swap_in_amount = math.ceil(swap_in_amount_less_fees / (1 - self.swap_fee))
 
         if (swap_out_asset_id == self.asset1.asset_id):
-            return BalanceDelta(self, swap_out_amount, -1 * swap_in_amount, 0)
+            return BalanceDelta(self, swap_out_amount, -1 * swap_in_amount, 0, num_iter)
         else:
-            return BalanceDelta(self, -1 * swap_in_amount, swap_out_amount, 0)
+            return BalanceDelta(self, -1 * swap_in_amount, swap_out_amount, 0, num_iter)

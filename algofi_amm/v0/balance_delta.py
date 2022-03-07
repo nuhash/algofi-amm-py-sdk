@@ -1,7 +1,7 @@
 
 class BalanceDelta():
 
-    def __init__(self, pool, asset1_delta, asset2_delta, lp_delta):
+    def __init__(self, pool, asset1_delta, asset2_delta, lp_delta, num_iter=0):
         """Constructor method for :class:`BalanceDelta`
         :param pool: a :class:`Pool` object for querying pool data
         :type pool: :class:`Pool`
@@ -11,11 +11,14 @@ class BalanceDelta():
         :type asset2_delta: int
         :param lp_delta: change in the lp balance of the pool
         :type lp_delta: int
+        :param num_iter: optional, denotes the estimated number of stableswap loop iterations used to compute expected txn cost
+        :type  num_iter: int
         """
 
         self.asset1_delta = asset1_delta
         self.asset2_delta = asset2_delta
         self.lp_delta = lp_delta
+        self.extra_compute_fee = int(num_iter * 1000 / 300)
 
         if (lp_delta != 0):
             self.price_delta = 0

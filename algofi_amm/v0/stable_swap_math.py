@@ -1,10 +1,10 @@
-from typing import List
+from typing import List, Tuple
 from .uint import *
 
 A_PRECISION = 1000000
 
 
-def get_D(token_amounts: List[int], amplification_factor: int) -> int:
+def get_D(token_amounts: List[int], amplification_factor: int) -> Tuple[int, int]:
     N_COINS = len(token_amounts)
     S = 0
     Dprev = 0
@@ -30,16 +30,16 @@ def get_D(token_amounts: List[int], amplification_factor: int) -> int:
         )
         if D > Dprev:
             if D - Dprev <= 1:
-                return int(D)
+                return int(D), _i
         else:
             if Dprev - D <= 1:
-                return int(D)
+                return int(D), _i
     raise
 
 
 def get_y(
     i: int, j: int, x: int, token_amounts: List[int], D: int, amplification_factor: int
-) -> int:
+) -> Tuple[int, int]:
     assert i != j
     assert j >= 0
     N_COINS = len(token_amounts)
@@ -71,8 +71,8 @@ def get_y(
         y = (y * y + c) // (2 * y + b - D)
         if y > y_prev:
             if y - y_prev <= 1:
-                return int(y)
+                return int(y), _i
         else:
             if y_prev - y <= 1:
-                return int(y)
+                return int(y), _i
     raise
