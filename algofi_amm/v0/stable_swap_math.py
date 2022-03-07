@@ -1,5 +1,4 @@
 from typing import List, Tuple
-from .uint import *
 
 A_PRECISION = 1000000
 
