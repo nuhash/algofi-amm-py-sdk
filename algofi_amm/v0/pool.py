@@ -145,9 +145,9 @@ class Pool():
         self.cumsum_fees_asset2 = pool_state[pool_strings.cumsum_fees_asset2]
 
         if self.pool_type == PoolType.NANOSWAP:
-            self.initial_amplification_factor = pool_state[pool_strings.initial_amplification_factor]
+            self.initial_amplification_factor = pool_state.get(pool_strings.initial_amplification_factor, 0)
             self.future_amplification_factor = pool_state[pool_strings.future_amplification_factor]
-            self.initial_amplification_factor_time = pool_state[pool_strings.initial_amplification_factor_time]
+            self.initial_amplification_factor_time = pool_state.get(pool_strings.initial_amplification_factor_time, 0)
             self.future_amplification_factor_time = pool_state[pool_strings.future_amplification_factor_time]
             status = self.algod.status()
             last_round = status["last-round"]
