@@ -15,7 +15,8 @@ from ..utils import PARAMETER_SCALE_FACTOR, TransactionGroup, get_application_lo
 
 
 class Pool():
-    nanoswap_pools = {} # (asset1_id, asset2_id) -> app_id
+    testnet_nanoswap_pools = {(77036525, 77036546): 77036598} # (asset1_id, asset2_id) -> app_id
+    mainnet_nanoswap_pools = dict()
 
     def __init__(self, algod_client, indexer_client, historical_indexer_client, network, pool_type, asset1, asset2):
         """Constructor method for :class:`Pool`
@@ -50,14 +51,19 @@ class Pool():
         self.manager_address = get_application_address(self.manager_application_id)
         self.validator_index = get_validator_index(network, pool_type)
         self.swap_fee = get_swap_fee(pool_type)
-
+        breakpoint()
         if pool_type == PoolType.NANOSWAP:
+            if self.network == Network.TESTNET:
+                self.nanoswap_pools = self.testnet_nanoswap_pools
+            else:
+                self.nanoswap_pools = self.mainnet_nanoswap_pools
             key = (asset1.asset_id, asset2.asset_id)
             if key not in self.nanoswap_pools:
                 raise Exception("Nanoswap pool does not exist")
             else:
                 self.pool_status = PoolStatus.ACTIVE
-                self.application_id = self.nanoswap_pools[key]
+                if self.network == Network.TESTNET:
+                    self.application_id = self.nanoswap_pools[key]
 
         else:
             self.logic_sig = LogicSigAccount(generate_logic_sig(asset1.asset_id, asset2.asset_id, self.manager_application_id, self.validator_index))
