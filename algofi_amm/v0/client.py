@@ -33,7 +33,7 @@ class AlgofiAMMClient():
         self.historical_indexer = historical_indexer_client
         self.network = network
         self.user_address = user_address
-        self.manager_application_id = get_manager_application_id(network)
+        self.manager_application_id = get_manager_application_id(network, False)
 
     def get_pool(self, pool_type, asset1_id, asset2_id):
         """Returns a :class:`Pool` object for given assets and pool_type
@@ -58,7 +58,7 @@ class AlgofiAMMClient():
             pool = Pool(self.algod, self.indexer, self.historical_indexer, self.network, pool_type, asset1, asset2)
         else:
             pool = Pool(self.algod, self.indexer, self.historical_indexer, self.network, pool_type, asset2, asset1)
-        
+
         return pool
 
     def get_asset(self, asset_id):
@@ -67,12 +67,12 @@ class AlgofiAMMClient():
         :param asset_id: asset id
         :type asset_id: int
         :return: :class:`Asset` object representing the asset with given asset id
-        :rtype: :class:`Asset` 
+        :rtype: :class:`Asset`
         """
 
         asset = Asset(self, asset_id)
         return asset
-    
+
     def get_user_info(self, address=None):
         """Returns a dictionary of information about the user
 
@@ -88,7 +88,7 @@ class AlgofiAMMClient():
             return self.algod.account_info(address)
         else:
             raise Exception("user_address has not been specified")
-    
+
     def is_opted_into_app(self, app_id, address=None):
         """Returns a boolean if the user address is opted into an application with id app_id
 
@@ -104,7 +104,7 @@ class AlgofiAMMClient():
             address = self.user_address
         user_info = self.get_user_info(address)
         return app_id in [x['id'] for x in user_info['apps-local-state']]
-    
+
     def is_opted_into_asset(self, asset, address=None):
         """Returns a boolean if the user address is opted into an asset with id asset_id
 
@@ -123,13 +123,13 @@ class AlgofiAMMClient():
                 address = self.user_address
             user_info = self.get_user_info(address)
             return asset.asset_id in [x['asset-id'] for x in user_info['assets']]
-    
+
     def get_user_balances(self, address=None):
         """Returns a dictionary of user balances by asset id
 
         :param address: address to get info for
         :type address: string
-        :return: dictionary of user balances by asset id 
+        :return: dictionary of user balances by asset id
         :rtype: dict
         """
 
@@ -139,7 +139,7 @@ class AlgofiAMMClient():
         balances = {asset["asset-id"] : asset["amount"] for asset in user_info["assets"]}
         balances[1] = user_info["amount"]
         return balances
-    
+
     def get_user_balance(self, asset, address=None):
         """Returns a amount of asset in user's balance with asset id asset_id
 
@@ -207,7 +207,7 @@ class AlgofiAMMClient():
 class AlgofiAMMTestnetClient(AlgofiAMMClient):
     def __init__(self, algod_client=None, indexer_client=None, user_address=None):
         """Constructor method for the testnet generic client.
-        
+
         :param algod_client: a :class:`AlgodClient` for interacting with the network
         :type algod_client: :class:`AlgodClient`
         :param indexer_client: a :class:`IndexerClient` for interacting with the network

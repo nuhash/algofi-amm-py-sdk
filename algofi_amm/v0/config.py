@@ -2,7 +2,7 @@
 from enum import Enum
 from base64 import b64encode
 from .approval_programs import MAINNET_APPROVAL_PROGRAM_25BP_CONSTANT_PRODUCT, MAINNET_APPROVAL_PROGRAM_75BP_CONSTANT_PRODUCT, \
-TESTNET_APPROVAL_PROGRAM_30BP_CONSTANT_PRODUCT, TESTNET_APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT, CLEAR_STATE_PROGRAM
+    TESTNET_APPROVAL_PROGRAM_30BP_CONSTANT_PRODUCT, TESTNET_APPROVAL_PROGRAM_100BP_CONSTANT_PRODUCT, CLEAR_STATE_PROGRAM
 from ..contract_strings import algofi_pool_strings as pool_strings
 from ..contract_strings import algofi_manager_strings as manager_strings
 
@@ -113,7 +113,7 @@ def get_clear_state_program():
     return bytes(CLEAR_STATE_PROGRAM)
 
 
-def get_manager_application_id(network):
+def get_manager_application_id(network, is_nanoswap):
     """Gets the manager application id for the given network
 
     :param network: network :class:`Network` ("testnet" or "mainnet")
@@ -125,6 +125,8 @@ def get_manager_application_id(network):
     if (network == Network.MAINNET):
         return 605753404
     elif (network == Network.TESTNET):
+        if is_nanoswap:
+            return 77282916
         return 66008735
 
 
@@ -146,7 +148,7 @@ def get_swap_fee(pool_type):
     elif (pool_type == PoolType.CONSTANT_PRODUCT_100BP_FEE):
         return 0.01
     elif (pool_type == PoolType.NANOSWAP):
-        return 0.0001 # TODO
+        return 0.001 # TODO
 
 
 def get_usdc_asset_id(network):
