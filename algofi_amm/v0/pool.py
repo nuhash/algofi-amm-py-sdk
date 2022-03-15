@@ -672,8 +672,8 @@ class Pool():
         if (swap_out_asset_id == self.asset1.asset_id):
             if self.pool_type == PoolType.NANOSWAP:
                 D, num_iter_D = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
-                y, num_iter_y = get_y(0, 1, self.asset1_balance - swap_out_amount, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
-                swap_in_amount_less_fees = y -  self.asset2_balance
+                y, num_iter_y = get_y(1, 0, self.asset1_balance - swap_out_amount, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
+                swap_in_amount_less_fees = y - self.asset2_balance
                 num_iter = num_iter_D + num_iter_y
             else:
                 swap_in_amount_less_fees = int((self.asset2_balance * swap_out_amount) / (self.asset1_balance - swap_out_amount)) - 1
@@ -681,7 +681,7 @@ class Pool():
         else:
             if self.pool_type == PoolType.NANOSWAP:
                 D, num_iter_D = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
-                y, num_iter_y = get_y(1, 0, self.asset2_balance - swap_out_amount, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
+                y, num_iter_y = get_y(0, 1, self.asset2_balance - swap_out_amount, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
                 swap_in_amount_less_fees = y - self.asset1_balance
                 num_iter = num_iter_D + num_iter_y
             else:
