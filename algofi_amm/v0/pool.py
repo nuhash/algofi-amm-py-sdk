@@ -16,7 +16,9 @@ from ..utils import PARAMETER_SCALE_FACTOR, TransactionGroup, get_application_lo
 
 class Pool():
     testnet_nanoswap_pools = {(77279127, 77279142): 77282939} # (asset1_id, asset2_id) -> app_id
-    mainnet_nanoswap_pools = {(31566704, 465865291): 658337046}
+    mainnet_nanoswap_pools = {(31566704, 465865291): 658337046,
+                              (312769, 465865291): 659677335,
+                              (312769, 31566704): 659678644}
 
     def __init__(self, algod_client, indexer_client, historical_indexer_client, network, pool_type, asset1, asset2):
         """Constructor method for :class:`Pool`
