@@ -123,6 +123,8 @@ def get_manager_application_id(network, is_nanoswap):
     """
 
     if (network == Network.MAINNET):
+        if is_nanoswap:
+            return 658336870
         return 605753404
     elif (network == Network.TESTNET):
         if is_nanoswap:
