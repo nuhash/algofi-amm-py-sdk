@@ -14,12 +14,7 @@ from ..contract_strings import algofi_pool_strings as pool_strings
 from ..utils import PARAMETER_SCALE_FACTOR, TransactionGroup, get_application_local_state, get_application_global_state, get_params, int_to_bytes, get_payment_txn
 
 
-class Pool():
-    testnet_nanoswap_pools = {(77279127, 77279142): 77282939} # (asset1_id, asset2_id) -> app_id
-    mainnet_nanoswap_pools = {(31566704, 465865291): 658337046,
-                              (312769, 465865291): 659677335,
-                              (312769, 31566704): 659678644}
-
+class Pool:
     def __init__(self, algod_client, indexer_client, historical_indexer_client, network, pool_type, asset1, asset2):
         """Constructor method for :class:`Pool`
 
@@ -47,9 +42,13 @@ class Pool():
         self.historical_indexer = historical_indexer_client
         self.network = network
         self.pool_type = pool_type
+        self.testnet_nanoswap_pools = {(77279127, 77279142): 77282939}  # (asset1_id, asset2_id) -> app_id
+        self.mainnet_nanoswap_pools = {(31566704, 465865291): 658337046,
+                                       (312769, 465865291): 659677335,
+                                       (312769, 31566704): 659678644}
         self.asset1 = asset1
         self.asset2 = asset2
-        self.manager_application_id = get_manager_application_id(network, pool_type == PoolTyle.Nanoswap)
+        self.manager_application_id = get_manager_application_id(network, pool_type == PoolType.NANOSWAP)
         self.manager_address = get_application_address(self.manager_application_id)
         self.validator_index = get_validator_index(network, pool_type)
         self.swap_fee = get_swap_fee(pool_type)
@@ -63,8 +62,7 @@ class Pool():
                 raise Exception("Nanoswap pool does not exist")
             else:
                 self.pool_status = PoolStatus.ACTIVE
-                if self.network == Network.TESTNET:
-                    self.application_id = self.nanoswap_pools[key]
+                self.application_id = self.nanoswap_pools[key]
 
         else:
             self.logic_sig = LogicSigAccount(generate_logic_sig(asset1.asset_id, asset2.asset_id, self.manager_application_id, self.validator_index))
