@@ -41,7 +41,10 @@ class algofi_pool_strings:
     swap_for_exact = "sfe"
     initialized = "i"
     initialize_pool = "ip"
-    amplification_factor = "af"
+    initial_amplification_factor = "iaf"
+    future_amplification_factor = "faf"
+    initial_amplification_factor_time = "iat"
+    future_amplification_factor_time = "fat"
 
 
 class algofi_manager_strings:

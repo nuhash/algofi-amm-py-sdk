@@ -4,15 +4,21 @@ import math
 from algosdk.logic import get_application_address
 from algosdk.future.transaction import LogicSigAccount, LogicSigTransaction, OnComplete, StateSchema, ApplicationCreateTxn, \
     ApplicationOptInTxn, ApplicationNoOpTxn, OnComplete
-from .config import PoolStatus, Network, get_validator_index, get_approval_program_by_pool_type, get_clear_state_program, get_swap_fee, get_manager_application_id
+from .config import PoolStatus, Network, get_validator_index, get_approval_program_by_pool_type, \
+    get_clear_state_program, get_swap_fee, get_manager_application_id, PoolType
 from .balance_delta import BalanceDelta
 from .logic_sig_generator import generate_logic_sig
+from .stable_swap_math import get_D, get_y
 from ..contract_strings import algofi_manager_strings as manager_strings
 from ..contract_strings import algofi_pool_strings as pool_strings
 from ..utils import PARAMETER_SCALE_FACTOR, TransactionGroup, get_application_local_state, get_application_global_state, get_params, int_to_bytes, get_payment_txn
 
 
 class Pool():
+    testnet_nanoswap_pools = {(77279127, 77279142): 77282939} # (asset1_id, asset2_id) -> app_id
+    mainnet_nanoswap_pools = {(31566704, 465865291): 658337046,
+                              (312769, 465865291): 659677335,
+                              (312769, 31566704): 659678644}
 
     def __init__(self, algod_client, indexer_client, historical_indexer_client, network, pool_type, asset1, asset2):
         """Constructor method for :class:`Pool`
@@ -34,8 +40,8 @@ class Pool():
         """
 
         if (asset1.asset_id >= asset2.asset_id):
-            raise Exception("Invalid asset ordering. Asset 1 id must be less then asset 2 id.")
-        
+            raise Exception("Invalid asset ordering. Asset 1 id must be less than asset 2 id.")
+
         self.algod = algod_client
         self.indexer = indexer_client
         self.historical_indexer = historical_indexer_client
@@ -43,57 +49,71 @@ class Pool():
         self.pool_type = pool_type
         self.asset1 = asset1
         self.asset2 = asset2
-        self.manager_application_id = get_manager_application_id(network)
+        self.manager_application_id = get_manager_application_id(network, pool_type == PoolTyle.Nanoswap)
         self.manager_address = get_application_address(self.manager_application_id)
         self.validator_index = get_validator_index(network, pool_type)
-        self.logic_sig = LogicSigAccount(generate_logic_sig(asset1.asset_id, asset2.asset_id, self.manager_application_id, self.validator_index))
         self.swap_fee = get_swap_fee(pool_type)
+        if pool_type == PoolType.NANOSWAP:
+            if self.network == Network.TESTNET:
+                self.nanoswap_pools = self.testnet_nanoswap_pools
+            else:
+                self.nanoswap_pools = self.mainnet_nanoswap_pools
+            key = (asset1.asset_id, asset2.asset_id)
+            if key not in self.nanoswap_pools:
+                raise Exception("Nanoswap pool does not exist")
+            else:
+                self.pool_status = PoolStatus.ACTIVE
+                if self.network == Network.TESTNET:
+                    self.application_id = self.nanoswap_pools[key]
 
-        # get local state
-        logic_sig_local_state = get_application_local_state(self.algod, self.logic_sig.address(), self.manager_application_id)
-        if logic_sig_local_state:
-            self.pool_status = PoolStatus.ACTIVE
         else:
-            self.pool_status = PoolStatus.UNINITIALIZED
-        
-        if logic_sig_local_state:
+            self.logic_sig = LogicSigAccount(generate_logic_sig(asset1.asset_id, asset2.asset_id, self.manager_application_id, self.validator_index))
+            # get local state
+            logic_sig_local_state = get_application_local_state(self.algod, self.logic_sig.address(), self.manager_application_id)
+            if logic_sig_local_state:
+                self.pool_status = PoolStatus.ACTIVE
+            else:
+                self.pool_status = PoolStatus.UNINITIALIZED
 
-            if (logic_sig_local_state[manager_strings.registered_asset_1_id] != asset1.asset_id) or \
-            (logic_sig_local_state[manager_strings.registered_asset_2_id] != asset2.asset_id) or \
-            (logic_sig_local_state[manager_strings.validator_index] != self.validator_index):
-                raise Exception("Logic sig state does not match as expected")
-            
+            if logic_sig_local_state:
+                if (logic_sig_local_state[manager_strings.registered_asset_1_id] != asset1.asset_id) or \
+                        (logic_sig_local_state[manager_strings.registered_asset_2_id] != asset2.asset_id) or \
+                        (logic_sig_local_state[manager_strings.validator_index] != self.validator_index):
+                    raise Exception("Logic sig state does not match as expected")
             self.application_id = logic_sig_local_state[manager_strings.registered_pool_id]
-            self.address = get_application_address(self.application_id)
 
-            # get global state
-            pool_state = get_application_global_state(self.algod, self.application_id)
-            self.lp_asset_id = pool_state[pool_strings.lp_id]
-            self.admin = pool_state[pool_strings.admin]
-            self.reserve_factor = pool_state[pool_strings.reserve_factor]
-            self.flash_loan_fee = pool_state[pool_strings.flash_loan_fee]
-            self.max_flash_loan_ratio = pool_state[pool_strings.max_flash_loan_ratio]
+        self.address = get_application_address(self.application_id)
 
-            # refresh state
-            self.refresh_state()
+        # get global state
+        pool_state = get_application_global_state(self.algod, self.application_id)
+        self.lp_asset_id = pool_state[pool_strings.lp_id]
+        self.admin = pool_state[pool_strings.admin]
+        self.reserve_factor = pool_state[pool_strings.reserve_factor]
+        self.flash_loan_fee = pool_state[pool_strings.flash_loan_fee]
+        self.max_flash_loan_ratio = pool_state[pool_strings.max_flash_loan_ratio]
+
+        # refresh state
+        self.refresh_state()
 
     def refresh_metadata(self):
         """Refresh the metadata of the pool (e.g. if now initialized)
         """
 
-        logic_sig_local_state = get_application_local_state(self.algod, self.logic_sig.address(), self.manager_application_id)
-        if logic_sig_local_state:
-            self.pool_status = PoolStatus.ACTIVE
-        else:
-            self.pool_status = PoolStatus.UNINITIALIZED
-            raise Exception("Pool is not created or uninitialized")
-        
-        if (logic_sig_local_state[manager_strings.registered_asset_1_id] != self.asset1.asset_id) or \
-           (logic_sig_local_state[manager_strings.registered_asset_2_id] != self.asset2.asset_id) or \
-           (logic_sig_local_state[manager_strings.validator_index] != self.validator_index):
-           raise Exception("Logic sig state does not match as expected")
-        
-        self.application_id = logic_sig_local_state[manager_strings.registered_pool_id]
+        # don't need to check logic sigs for nanoswap
+        if self.pool_type != PoolType.NANOSWAP:
+            logic_sig_local_state = get_application_local_state(self.algod, self.logic_sig.address(), self.manager_application_id)
+            if logic_sig_local_state:
+                self.pool_status = PoolStatus.ACTIVE
+            else:
+                self.pool_status = PoolStatus.UNINITIALIZED
+                raise Exception("Pool is not created or uninitialized")
+
+            if (logic_sig_local_state[manager_strings.registered_asset_1_id] != self.asset1.asset_id) or \
+                    (logic_sig_local_state[manager_strings.registered_asset_2_id] != self.asset2.asset_id) or \
+                    (logic_sig_local_state[manager_strings.validator_index] != self.validator_index):
+                raise Exception("Logic sig state does not match as expected")
+            self.application_id = logic_sig_local_state[manager_strings.registered_pool_id]
+
         self.address = get_application_address(self.application_id)
 
         # get global state
@@ -125,6 +145,17 @@ class Pool():
         self.cumsum_fees_asset1 = pool_state[pool_strings.cumsum_fees_asset1]
         self.cumsum_fees_asset2 = pool_state[pool_strings.cumsum_fees_asset2]
 
+        if self.pool_type == PoolType.NANOSWAP:
+            self.initial_amplification_factor = pool_state.get(pool_strings.initial_amplification_factor, 0)
+            self.future_amplification_factor = pool_state[pool_strings.future_amplification_factor]
+            self.initial_amplification_factor_time = pool_state.get(pool_strings.initial_amplification_factor_time, 0)
+            self.future_amplification_factor_time = pool_state.get(pool_strings.future_amplification_factor_time, 0)
+            status = self.algod.status()
+            last_round = status["last-round"]
+            block = self.algod.block_info(last_round)
+            timestamp = block["block"]["ts"]
+            self.t = timestamp
+
     def get_pool_price(self, asset_id):
         """Gets the price of the pool in terms of the asset with given asset_id
 
@@ -140,7 +171,7 @@ class Pool():
             return self.asset2_balance / self.asset1_balance
         else:
             raise Exception("Invalid asset id")
-    
+
     def sign_txn_with_logic_sig(self, transaction):
         """Returns input transaction signed with logic sig of pool
 
@@ -149,9 +180,9 @@ class Pool():
         :return: transaction signed with logic sig of pool
         :rtype: :class:`SignedTransaction`
         """
-
+        assert self.pool_type != PoolType.NANOSWAP, 'Nanoswap pools are not compatible with manager logic sigs'
         return LogicSigTransaction(transaction, self.logic_sig)
-    
+
     def get_create_pool_txn(self, sender, params=None):
         """Returns unsigned CreatePool transaction with given sender
 
@@ -160,10 +191,12 @@ class Pool():
         :return: unsigned CreatePool transaction with given sender
         :rtype: :class:`ApplicationCreateTxn`
         """
+        if (self.pool_type == PoolType.NANOSWAP):
+            raise Exception("Nanoswap pool creation is not supported")
 
         if (self.pool_status == PoolStatus.ACTIVE):
             raise Exception("Pool already created and active - cannot generate create pool txn")
-        
+
         if params is None:
             params = get_params(self.algod)
 
@@ -188,7 +221,7 @@ class Pool():
         )
 
         return TransactionGroup([txn0])
-    
+
     def get_initialize_pool_txns(self, sender, pool_app_id, params=None):
         """Get group transaction for initializing the pool. First, the manager is 
         funded (which funds the pool contract (for opting into assets, creating LP token)
@@ -204,9 +237,9 @@ class Pool():
         :rtype: :class:`TransactionGroup`
         """
 
-        if (self.pool_status == PoolStatus.ACTIVE):
+        if self.pool_status == PoolStatus.ACTIVE:
             raise Exception("Pool already active - cannot generate initialize pool txn")
-        
+
         if params is None:
             params = get_params(self.algod)
 
@@ -260,8 +293,8 @@ class Pool():
         if params is None:
             params = get_params(self.algod)
         return get_payment_txn(params, sender, sender, amount=int(0), asset_id=self.lp_asset_id)
-    
-    def get_pool_txns(self, sender, asset1_amount, asset2_amount, maximum_slippage,params=None):
+
+    def get_pool_txns(self, sender, asset1_amount, asset2_amount, maximum_slippage, params=None, fee=3000):
         """Get group transaction for pooling with given asset amounts and maximum slippage.
         The two assets are sent via two :class:`PaymentTxn` / :class:`AssetTransferTxn`. Then, a pool call
         is made from which the LP tokens are issued via inner asset transfer txn. Lastly,
@@ -291,7 +324,7 @@ class Pool():
         txn1 = get_payment_txn(params, sender, self.address, asset2_amount, self.asset2.asset_id)
 
         # pool
-        params.fee = 3000
+        params.fee = fee
         txn2 = ApplicationNoOpTxn(
             sender=sender,
             sp=params,
@@ -324,7 +357,7 @@ class Pool():
         )
 
         return TransactionGroup([txn0, txn1, txn2, txn3, txn4])
-    
+
     def get_burn_txns(self, sender, burn_amount,params = None):
         """Get group transaction for burn with given burn amount. The LP token
         is transferred via :class:`AssetTransferTxn`. Then, two burn calls are made,
@@ -366,8 +399,8 @@ class Pool():
         )
 
         return TransactionGroup([txn0, txn1, txn2])
-    
-    def get_swap_exact_for_txns(self, sender, swap_in_asset, swap_in_amount, min_amount_to_receive,params=None):
+
+    def get_swap_exact_for_txns(self, sender, swap_in_asset, swap_in_amount, min_amount_to_receive, params=None, fee=2000):
         """Get group transaction for swap exact for transaction. An exact amount of the asset
         to be swapped is sent via a :class:`PaymentTxn` or :class:`AssetTransferTxn`. 
         Then, a swap exact for call is made from which the output asset is sent via inner transaction.
@@ -386,13 +419,13 @@ class Pool():
         """
         if params is None:
             params = get_params(self.algod)
-            
+
 
         # send swap in asset
         txn0 = get_payment_txn(params, sender, self.address, swap_in_amount, swap_in_asset.asset_id)
 
         # swap exact for
-        params.fee = 2000
+        params.fee = fee
         foreign_assets = [self.asset2.asset_id] if swap_in_asset.asset_id == self.asset1.asset_id else ([self.asset1.asset_id] if self.asset1.asset_id != 1 else [])
         txn1 = ApplicationNoOpTxn(
             sender=sender,
@@ -406,7 +439,7 @@ class Pool():
 
         return TransactionGroup([txn0, txn1])
 
-    def get_swap_for_exact_txns(self, sender, swap_in_asset, swap_in_amount, amount_to_receive,params=None):
+    def get_swap_for_exact_txns(self, sender, swap_in_asset, swap_in_amount, amount_to_receive, params=None, fee=2000):
         """Get group transaction for swap for exact transaction. An amount of the asset to be
         swapped is sent via a :class:`PaymentTxn` or :class:`AssetTransferTxn`. Then, swap for exact
         call is made to swap for an exact amount of the output asset. If a sufficient amount
@@ -431,7 +464,7 @@ class Pool():
         txn0 = get_payment_txn(params, sender, self.address, swap_in_amount, swap_in_asset.asset_id)
 
         # swap for exact
-        params.fee = 2000
+        params.fee = fee
         foreign_assets = [self.asset2.asset_id] if swap_in_asset.asset_id == self.asset1.asset_id else ([self.asset1.asset_id] if self.asset1.asset_id != 1 else [])
         txn1 = ApplicationNoOpTxn(
             sender=sender,
@@ -456,7 +489,7 @@ class Pool():
         )
 
         return TransactionGroup([txn0, txn1, txn2])
-    
+
     def get_flash_loan_txns(self, sender, flash_loan_asset, flash_loan_amount, group_transaction,params=None):
         """Get group transaction for swap exact for transaction
 
@@ -504,6 +537,15 @@ class Pool():
 
         return TransactionGroup([txn0] + group_transaction.transactions + [txn1])
 
+    @property
+    def amplification_factor(self):
+        if self.t < self.future_amplification_factor_time:
+            return int(self.initial_amplification_factor +
+                       (self.future_amplification_factor - self.initial_amplification_factor) * (self.t - self.initial_amplification_factor_time)
+                       // (self.future_amplification_factor_time - self.initial_amplification_factor_time))
+
+        return self.future_amplification_factor
+
     def get_empty_pool_quote(self, asset1_pooled_amount, asset2_pooled_amount):
         """Get pool quote for an empty pool
 
@@ -515,13 +557,17 @@ class Pool():
         :rtype: :class:`BalanceDelta`
         """
 
-        if (asset1_pooled_amount * asset2_pooled_amount > 2**64-1):
-            lps_issued = int((asset1_pooled_amount)**(0.5)) * int((asset2_pooled_amount)**(0.5))
+        if self.pool_type == PoolType.NANOSWAP:
+            lps_issued, num_iter = get_D([asset2_pooled_amount, asset2_pooled_amount], self.amplification_factor)
         else:
-            lps_issued = int((asset1_pooled_amount * asset2_pooled_amount)**(0.5))
-        
-        return BalanceDelta(self, -1 * asset1_pooled_amount, -1*asset2_pooled_amount, lps_issued)
-    
+            num_iter = 0
+            if (asset1_pooled_amount * asset2_pooled_amount > 2**64-1):
+                lps_issued = int((asset1_pooled_amount)**(0.5)) * int((asset2_pooled_amount)**(0.5))
+            else:
+                lps_issued = int((asset1_pooled_amount * asset2_pooled_amount)**(0.5))
+
+        return BalanceDelta(self, -1 * asset1_pooled_amount, -1 * asset2_pooled_amount, lps_issued, num_iter)
+
     def get_pool_quote(self, asset_id, asset_amount):
         """Get full pool quote for a given asset id and amount
 
@@ -535,18 +581,25 @@ class Pool():
 
         if (self.lp_circulation == 0):
             raise Exception("Error: pool is empty")
-        
+
         if (asset_id == self.asset1.asset_id):
             asset1_pooled_amount = asset_amount
             asset2_pooled_amount = int(asset1_pooled_amount * self.asset2_balance / self.asset1_balance)
         else:
             asset2_pooled_amount = asset_amount
             asset1_pooled_amount = int(asset2_pooled_amount * self.asset1_balance / self.asset2_balance)
-        
-        lps_issued = int(asset1_pooled_amount * self.lp_circulation / self.asset1_balance)
 
-        return BalanceDelta(self, -1 * asset1_pooled_amount, -1 * asset2_pooled_amount, lps_issued)
-    
+        if self.pool_type == PoolType.NANOSWAP:
+            D0, num_iter_D0 = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
+            D1, num_iter_D1 = get_D([self.asset1_balance + asset1_pooled_amount, self.asset2_balance + asset2_pooled_amount], self.amplification_factor)
+            lps_issued = self.lp_circulation * (D1 - D0) / D0
+            num_iter = num_iter_D0 + num_iter_D1
+        else:
+            lps_issued = int(asset1_pooled_amount * self.lp_circulation / self.asset1_balance)
+            num_iter = 0
+
+        return BalanceDelta(self, -1 * asset1_pooled_amount, -1 * asset2_pooled_amount, lps_issued, num_iter)
+
     def get_burn_quote(self, lp_amount):
         """Get burn quote for a given amount of lps to burn
 
@@ -558,15 +611,15 @@ class Pool():
 
         if (self.lp_circulation == 0):
             raise Exception("Error: pool is empty")
-        
+
         if (self.lp_circulation < lp_amount):
             raise Exception("Error: cannot burn more lp tokens than are in circulation")
-        
+
         asset1_amount = int(lp_amount * self.asset1_balance / self.lp_circulation)
         asset2_amount = int(lp_amount * self.asset2_balance / self.lp_circulation)
 
         return BalanceDelta(self, asset1_amount, asset2_amount, -1 * lp_amount)
-    
+
     def get_swap_exact_for_quote(self, swap_in_asset_id, swap_in_amount):
         """Get swap exact for quote for a given asset id and swap amount
 
@@ -580,18 +633,30 @@ class Pool():
 
         if (self.lp_circulation == 0):
             raise Exception("Error: pool is empty")
-        
+
         swap_in_amount_less_fees = swap_in_amount - int(math.ceil(swap_in_amount * self.swap_fee))
 
+
         if (swap_in_asset_id == self.asset1.asset_id):
-            swap_out_amount = int((self.asset2_balance * swap_in_amount_less_fees) / (self.asset1_balance + swap_in_amount_less_fees))
+            if self.pool_type == PoolType.NANOSWAP:
+                D, num_iter_D = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
+                y, num_iter_y = get_y(0, 1, self.asset1_balance + swap_in_amount_less_fees, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
+                swap_out_amount = self.asset2_balance - y
+                num_iter = num_iter_D + num_iter_y
+            else:
+                swap_out_amount = int((self.asset2_balance * swap_in_amount_less_fees) / (self.asset1_balance + swap_in_amount_less_fees))
+                num_iter = 0
+            return BalanceDelta(self, -1 * swap_in_amount, swap_out_amount, 0, num_iter)
         else:
-            swap_out_amount = int((self.asset1_balance * swap_in_amount_less_fees) / (self.asset2_balance + swap_in_amount_less_fees))
-        
-        if (swap_in_asset_id == self.asset1.asset_id):
-            return BalanceDelta(self, -1 * swap_in_amount, swap_out_amount, 0)
-        else:
-            return BalanceDelta(self, swap_out_amount, -1 * swap_in_amount, 0)
+            if self.pool_type == PoolType.NANOSWAP:
+                D, num_iter_D = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
+                y, num_iter_y = get_y(1, 0, self.asset2_balance + swap_in_amount_less_fees, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
+                swap_out_amount = self.asset1_balance - y
+                num_iter = num_iter_D + num_iter_y
+            else:
+                swap_out_amount = int((self.asset1_balance * swap_in_amount_less_fees) / (self.asset2_balance + swap_in_amount_less_fees))
+                num_iter = 0
+            return BalanceDelta(self, swap_out_amount, -1 * swap_in_amount, 0, num_iter)
 
     def get_swap_for_exact_quote(self, swap_out_asset_id, swap_out_amount):
         """Get swap for exact quote for a given asset id and swap amount
@@ -606,15 +671,29 @@ class Pool():
 
         if (self.lp_circulation == 0):
             raise Exception("Error: pool is empty")
-        
+
         if (swap_out_asset_id == self.asset1.asset_id):
-            swap_in_amount_less_fees = int((self.asset2_balance * swap_out_amount) / (self.asset1_balance - swap_out_amount)) - 1
+            if self.pool_type == PoolType.NANOSWAP:
+                D, num_iter_D = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
+                y, num_iter_y = get_y(1, 0, self.asset1_balance - swap_out_amount, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
+                swap_in_amount_less_fees = y - self.asset2_balance
+                num_iter = num_iter_D + num_iter_y
+            else:
+                swap_in_amount_less_fees = int((self.asset2_balance * swap_out_amount) / (self.asset1_balance - swap_out_amount)) - 1
+                num_iter = 0
         else:
-            swap_in_amount_less_fees = int((self.asset1_balance * swap_out_amount) / (self.asset2_balance - swap_out_amount)) - 1
-        
+            if self.pool_type == PoolType.NANOSWAP:
+                D, num_iter_D = get_D([self.asset1_balance, self.asset2_balance], self.amplification_factor)
+                y, num_iter_y = get_y(0, 1, self.asset2_balance - swap_out_amount, [self.asset1_balance, self.asset2_balance], D, self.amplification_factor)
+                swap_in_amount_less_fees = y - self.asset1_balance
+                num_iter = num_iter_D + num_iter_y
+            else:
+                swap_in_amount_less_fees = int((self.asset1_balance * swap_out_amount) / (self.asset2_balance - swap_out_amount)) - 1
+                num_iter = 0
+
         swap_in_amount = math.ceil(swap_in_amount_less_fees / (1 - self.swap_fee))
 
         if (swap_out_asset_id == self.asset1.asset_id):
-            return BalanceDelta(self, swap_out_amount, -1 * swap_in_amount, 0)
+            return BalanceDelta(self, swap_out_amount, -1 * swap_in_amount, 0, num_iter)
         else:
-            return BalanceDelta(self, -1 * swap_in_amount, swap_out_amount, 0)
+            return BalanceDelta(self, -1 * swap_in_amount, swap_out_amount, 0, num_iter)
