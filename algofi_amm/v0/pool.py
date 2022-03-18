@@ -30,7 +30,7 @@ class Pool():
         :param historical_indexer_client: a :class:`IndexerClient` object for interacting with the network (historical state)
         :type historical_indexer_client: :class:`IndexerClient`
         :param network: network :class:`Network` ("testnet" or "mainnet")
-        :type network: class:`Network`
+        :type network: str
         :param pool_type: a :class:`PoolType` object for the type of pool (e.g. 30bp, 100bp fee)
         :type pool_type: :class:`PoolType`
         :param asset1: a :class:`Asset` representing the first asset of the pool
@@ -183,7 +183,7 @@ class Pool():
         assert self.pool_type != PoolType.NANOSWAP, 'Nanoswap pools are not compatible with manager logic sigs'
         return LogicSigTransaction(transaction, self.logic_sig)
 
-    def get_create_pool_txn(self, sender):
+    def get_create_pool_txn(self, sender, params=None):
         """Returns unsigned CreatePool transaction with given sender
 
         :param sender: sender
@@ -197,7 +197,8 @@ class Pool():
         if (self.pool_status == PoolStatus.ACTIVE):
             raise Exception("Pool already created and active - cannot generate create pool txn")
 
-        params = get_params(self.algod)
+        if params is None:
+            params = get_params(self.algod)
 
         approval_program = get_approval_program_by_pool_type(self.pool_type, self.network)
         clear_state_program = get_clear_state_program()
@@ -221,7 +222,7 @@ class Pool():
 
         return TransactionGroup([txn0])
 
-    def get_initialize_pool_txns(self, sender, pool_app_id):
+    def get_initialize_pool_txns(self, sender, pool_app_id, params=None):
         """Get group transaction for initializing the pool. First, the manager is 
         funded (which funds the pool contract (for opting into assets, creating LP token)
         via an inner payment txn. Then, the logic sig is funded to opt into manager.
@@ -239,10 +240,8 @@ class Pool():
         if self.pool_status == PoolStatus.ACTIVE:
             raise Exception("Pool already active - cannot generate initialize pool txn")
 
-        if self.pool_status == PoolType.NANOSWAP:
-            raise Exception("Nanoswap pool creation is not supported")
-
-        params = get_params(self.algod)
+        if params is None:
+            params = get_params(self.algod)
 
         # fund manager
         if self.network == Network.MAINNET:
@@ -283,7 +282,7 @@ class Pool():
 
         return TransactionGroup([txn0, txn1, txn2, txn3])
 
-    def get_lp_token_opt_in_txn(self, sender):
+    def get_lp_token_opt_in_txn(self, sender,params=None):
         """Get lp token opt in transaction for the given sender
 
         :param sender: sender
@@ -291,11 +290,11 @@ class Pool():
         :return: lp token opt in transaction for the given sender
         :rtype: :class:`PaymentTxn` or :class:`AssetTransferTxn`
         """
-
-        params = get_params(self.algod)
+        if params is None:
+            params = get_params(self.algod)
         return get_payment_txn(params, sender, sender, amount=int(0), asset_id=self.lp_asset_id)
 
-    def get_pool_txns(self, sender, asset1_amount, asset2_amount, maximum_slippage, fee=3000):
+    def get_pool_txns(self, sender, asset1_amount, asset2_amount, maximum_slippage, params=None, fee=3000):
         """Get group transaction for pooling with given asset amounts and maximum slippage.
         The two assets are sent via two :class:`PaymentTxn` / :class:`AssetTransferTxn`. Then, a pool call
         is made from which the LP tokens are issued via inner asset transfer txn. Lastly,
@@ -315,8 +314,8 @@ class Pool():
         :return: group transaction for pooling with given asset amounts and maximum slippage
         :rtype: :class:`TransactionGroup`
         """
-
-        params = get_params(self.algod)
+        if params is None:
+            params = get_params(self.algod)
 
         # send asset 1
         txn0 = get_payment_txn(params, sender, self.address, asset1_amount, self.asset1.asset_id)
@@ -359,7 +358,7 @@ class Pool():
 
         return TransactionGroup([txn0, txn1, txn2, txn3, txn4])
 
-    def get_burn_txns(self, sender, burn_amount):
+    def get_burn_txns(self, sender, burn_amount,params = None):
         """Get group transaction for burn with given burn amount. The LP token
         is transferred via :class:`AssetTransferTxn`. Then, two burn calls are made,
         one for each asset.
@@ -372,7 +371,8 @@ class Pool():
         :rtype: :class:`TransactionGroup`
         """
 
-        params = get_params(self.algod)
+        if params is None:
+            params = get_params(self.algod)
 
         # send lp token
         txn0 = get_payment_txn(params, sender, self.address, burn_amount, self.lp_asset_id)
@@ -400,7 +400,7 @@ class Pool():
 
         return TransactionGroup([txn0, txn1, txn2])
 
-    def get_swap_exact_for_txns(self, sender, swap_in_asset, swap_in_amount, min_amount_to_receive, fee=2000):
+    def get_swap_exact_for_txns(self, sender, swap_in_asset, swap_in_amount, min_amount_to_receive, params=None, fee=2000):
         """Get group transaction for swap exact for transaction. An exact amount of the asset
         to be swapped is sent via a :class:`PaymentTxn` or :class:`AssetTransferTxn`. 
         Then, a swap exact for call is made from which the output asset is sent via inner transaction.
@@ -417,8 +417,9 @@ class Pool():
         :return: group transaction for swap exact for transaction
         :rtype: :class:`TransactionGroup`
         """
+        if params is None:
+            params = get_params(self.algod)
 
-        params = get_params(self.algod)
 
         # send swap in asset
         txn0 = get_payment_txn(params, sender, self.address, swap_in_amount, swap_in_asset.asset_id)
@@ -438,7 +439,7 @@ class Pool():
 
         return TransactionGroup([txn0, txn1])
 
-    def get_swap_for_exact_txns(self, sender, swap_in_asset, swap_in_amount, amount_to_receive, fee=2000):
+    def get_swap_for_exact_txns(self, sender, swap_in_asset, swap_in_amount, amount_to_receive, params=None, fee=2000):
         """Get group transaction for swap for exact transaction. An amount of the asset to be
         swapped is sent via a :class:`PaymentTxn` or :class:`AssetTransferTxn`. Then, swap for exact
         call is made to swap for an exact amount of the output asset. If a sufficient amount
@@ -456,8 +457,8 @@ class Pool():
         :return: group transaction for swap for exact transaction
         :rtype: :class:`TransactionGroup`
         """
-
-        params = get_params(self.algod)
+        if params is None:
+            params = get_params(self.algod)
 
         # send swap in asset
         txn0 = get_payment_txn(params, sender, self.address, swap_in_amount, swap_in_asset.asset_id)
@@ -489,7 +490,7 @@ class Pool():
 
         return TransactionGroup([txn0, txn1, txn2])
 
-    def get_flash_loan_txns(self, sender, flash_loan_asset, flash_loan_amount, group_transaction):
+    def get_flash_loan_txns(self, sender, flash_loan_asset, flash_loan_amount, group_transaction,params=None):
         """Get group transaction for swap exact for transaction
 
         :param sender: sender
@@ -503,8 +504,8 @@ class Pool():
         :return: group transaction for flash loan transaction composed with group transaction
         :rtype: :class:`TransactionGroup`
         """
-
-        params = get_params(self.algod)
+        if params is None:
+            params = get_params(self.algod)
 
         # flash loan txn
         params.fee = 2000
