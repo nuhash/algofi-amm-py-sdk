@@ -29,7 +29,7 @@ asset1 = Asset(amm_client, asset1_id)
 asset2 = Asset(amm_client, asset2_id)
 asset1_pool_scaled_amount = asset1.get_scaled_amount(asset1_pool_amount)
 asset2_pool_scaled_amount = asset2.get_scaled_amount(asset2_pool_amount)
-pool = amm_client.get_pool(PoolType.NANOSWAP, asset1_id, asset2_id)
+pool = amm_client.get_pool(PoolType.CONSTANT_PRODUCT_25BP_FEE, asset1_id, asset2_id)
 lp_asset_id = pool.lp_asset_id
 lp_asset = Asset(amm_client, lp_asset_id)
 

@@ -13,19 +13,19 @@ user = dotenv_values(ENV_PATH)
 sender = mnemonic.to_public_key(user['mnemonic'])
 key =  mnemonic.to_private_key(user['mnemonic'])
 
-IS_MAINNET = False
+IS_MAINNET = True
 if IS_MAINNET:
     amm_client = AlgofiAMMMainnetClient(user_address=sender)
 else:
     amm_client = AlgofiAMMTestnetClient(user_address=sender)
 
 # SET POOL ASSETS + AMOUNTS
-asset1_id = 1
-asset2_id = 42281306
+asset1_id = 31566704
+asset2_id = 465865291
 lp_asset_amount = 100
 asset1 = Asset(amm_client, asset1_id)
 asset2 = Asset(amm_client, asset2_id)
-pool = amm_client.get_pool(PoolType.CONSTANT_PRODUCT_25BP_FEE, asset1_id, asset2_id)
+pool = amm_client.get_pool(PoolType.NANOSWAP, asset1_id, asset2_id)
 lp_asset_id = pool.lp_asset_id
 lp_asset = Asset(amm_client, lp_asset_id)
 

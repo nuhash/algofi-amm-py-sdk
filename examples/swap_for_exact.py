@@ -29,7 +29,7 @@ asset1 = Asset(amm_client, asset1_id)
 asset2 = Asset(amm_client, asset2_id)
 swap_asset_scaled_amount = asset1.get_scaled_amount(swap_asset_amount)
 exact_scaled_amount_to_receive = asset2.get_scaled_amount(exact_amount_to_receive)
-pool = amm_client.get_pool(PoolType.CONSTANT_PRODUCT_30BP_FEE, asset1_id, asset2_id)
+pool = amm_client.get_pool(PoolType.CONSTANT_PRODUCT_25BP_FEE, asset1_id, asset2_id)
 lp_asset_id = pool.lp_asset_id
 lp_asset = Asset(amm_client, lp_asset_id)
 
@@ -47,7 +47,7 @@ if not amm_client.is_opted_into_asset(asset2):
     send_and_wait(amm_client.algod, [txn.sign(key)])
 
 if amm_client.get_user_balance(swap_input_asset) < swap_asset_amount:
-    raise Exception(sender + " has insufficient amount of " + swap_input_asset.name + " to pool")
+    raise Exception(sender + " has insufficient amount of " + swap_input_asset.name + " to swap")
 
 if pool.pool_status == PoolStatus.UNINITIALIZED:
     print("Pool has not been created + initialized")
