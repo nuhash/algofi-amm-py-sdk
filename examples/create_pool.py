@@ -18,7 +18,7 @@ else:
     amm_client = AlgofiAMMTestnetClient()
 asset1_id = 1
 asset2_id = 42281306
-pool = amm_client.get_pool(PoolType.CONSTANT_PRODUCT_30BP_FEE, asset1_id, asset2_id)
+pool = amm_client.get_pool(PoolType.CONSTANT_PRODUCT_25BP_FEE, asset1_id, asset2_id)
 
 if pool.pool_status == PoolStatus.ACTIVE:
     print("Pool has been created + initialized")

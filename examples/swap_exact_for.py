@@ -29,7 +29,7 @@ asset1 = Asset(amm_client, asset1_id)
 asset2 = Asset(amm_client, asset2_id)
 swap_asset_scaled_amount = asset1.get_scaled_amount(swap_asset_amount)
 min_scaled_amount_to_receive = asset2.get_scaled_amount(min_amount_to_receive)
-pool = amm_client.get_pool(PoolType.CONSTANT_PRODUCT_30BP_FEE, asset1_id, asset2_id)
+pool = amm_client.get_pool(PoolType.CONSTANT_PRODUCT_25BP_FEE, asset1_id, asset2_id)
 lp_asset_id = pool.lp_asset_id
 lp_asset = Asset(amm_client, lp_asset_id)
 
