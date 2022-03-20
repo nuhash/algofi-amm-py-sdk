@@ -47,7 +47,7 @@ if not amm_client.is_opted_into_asset(asset2):
     send_and_wait(amm_client.algod, [txn.sign(key)])
 
 if amm_client.get_user_balance(swap_input_asset) < swap_asset_amount:
-    raise Exception(sender + " has insufficient amount of " + swap_input_asset.name + " to pool")
+    raise Exception(sender + " has insufficient amount of " + swap_input_asset.name + " to swap")
 
 if pool.pool_status == PoolStatus.UNINITIALIZED:
     print("Pool has not been created + initialized")
