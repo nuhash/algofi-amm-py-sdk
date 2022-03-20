@@ -13,23 +13,23 @@ user = dotenv_values(ENV_PATH)
 sender = mnemonic.to_public_key(user['mnemonic'])
 key =  mnemonic.to_private_key(user['mnemonic'])
 
-IS_MAINNET = False
+IS_MAINNET = True
 if IS_MAINNET:
     amm_client = AlgofiAMMMainnetClient(user_address=sender)
 else:
     amm_client = AlgofiAMMTestnetClient(user_address=sender)
 
 # SET POOL ASSETS + AMOUNTS
-asset1_id = 77036525
-asset2_id = 77036546
-asset1_pool_amount = 1
-asset2_pool_amount = .571
-maximum_slippage=500
+asset1_id = 31566704
+asset2_id = 465865291
+asset1_pool_amount = 0.00056
+asset2_pool_amount = 0.000751
+maximum_slippage=5000
 asset1 = Asset(amm_client, asset1_id)
 asset2 = Asset(amm_client, asset2_id)
 asset1_pool_scaled_amount = asset1.get_scaled_amount(asset1_pool_amount)
 asset2_pool_scaled_amount = asset2.get_scaled_amount(asset2_pool_amount)
-pool = amm_client.get_pool(PoolType.CONSTANT_PRODUCT_25BP_FEE, asset1_id, asset2_id)
+pool = amm_client.get_pool(PoolType.NANOSWAP, asset1_id, asset2_id)
 lp_asset_id = pool.lp_asset_id
 lp_asset = Asset(amm_client, lp_asset_id)
 
@@ -61,6 +61,6 @@ if amm_client.get_user_balance(asset2) < asset2_pool_amount:
 if pool.pool_status == PoolStatus.UNINITIALIZED:
     print("Pool has not been created + initialized")
 else:
-    pool_txn = pool.get_pool_txns(sender, asset1_pool_scaled_amount, asset2_pool_scaled_amount, maximum_slippage=maximum_slippage)
+    pool_txn = pool.get_pool_txns(sender, asset1_pool_scaled_amount, asset2_pool_scaled_amount, maximum_slippage=maximum_slippage, fee=4000)
     pool_txn.sign_with_private_key(sender, key)
     pool_txn.submit(amm_client.algod, wait=True)
