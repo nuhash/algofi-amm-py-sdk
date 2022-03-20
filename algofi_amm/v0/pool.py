@@ -100,7 +100,7 @@ class Pool:
         Can only refresh metadata of vanilla pools.
         """
 
-        if pool_type != PoolType.NANOSWAP:
+        if self.pool_type != PoolType.NANOSWAP:
             logic_sig_local_state = get_application_local_state(self.algod, self.logic_sig.address(), self.manager_application_id)
             if logic_sig_local_state:
                 self.pool_status = PoolStatus.ACTIVE
@@ -109,8 +109,8 @@ class Pool:
 
             if logic_sig_local_state:
 
-                if (logic_sig_local_state[manager_strings.registered_asset_1_id] != asset1.asset_id) or \
-                (logic_sig_local_state[manager_strings.registered_asset_2_id] != asset2.asset_id) or \
+                if (logic_sig_local_state[manager_strings.registered_asset_1_id] != self.asset1.asset_id) or \
+                (logic_sig_local_state[manager_strings.registered_asset_2_id] != self.asset2.asset_id) or \
                 (logic_sig_local_state[manager_strings.validator_index] != self.validator_index):
                     raise Exception("Logic sig state does not match as expected")
                 
