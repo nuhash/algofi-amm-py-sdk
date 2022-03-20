@@ -52,6 +52,7 @@ class Pool:
         self.manager_address = get_application_address(self.manager_application_id)
         self.validator_index = get_validator_index(network, pool_type)
         self.swap_fee = get_swap_fee(pool_type)
+
         if pool_type == PoolType.NANOSWAP:
             if self.network == Network.TESTNET:
                 self.nanoswap_pools = self.testnet_nanoswap_pools
@@ -63,7 +64,6 @@ class Pool:
             else:
                 self.pool_status = PoolStatus.ACTIVE
                 self.application_id = self.nanoswap_pools[key]
-
         else:
             self.logic_sig = LogicSigAccount(generate_logic_sig(asset1.asset_id, asset2.asset_id, self.manager_application_id, self.validator_index))
             # get local state
@@ -74,53 +74,56 @@ class Pool:
                 self.pool_status = PoolStatus.UNINITIALIZED
 
             if logic_sig_local_state:
+
                 if (logic_sig_local_state[manager_strings.registered_asset_1_id] != asset1.asset_id) or \
-                        (logic_sig_local_state[manager_strings.registered_asset_2_id] != asset2.asset_id) or \
-                        (logic_sig_local_state[manager_strings.validator_index] != self.validator_index):
+                (logic_sig_local_state[manager_strings.registered_asset_2_id] != asset2.asset_id) or \
+                (logic_sig_local_state[manager_strings.validator_index] != self.validator_index):
                     raise Exception("Logic sig state does not match as expected")
-            self.application_id = logic_sig_local_state[manager_strings.registered_pool_id]
+                
+                self.application_id = logic_sig_local_state[manager_strings.registered_pool_id]
 
-        self.address = get_application_address(self.application_id)
-
-        # get global state
-        pool_state = get_application_global_state(self.algod, self.application_id)
-        self.lp_asset_id = pool_state[pool_strings.lp_id]
-        self.admin = pool_state[pool_strings.admin]
-        self.reserve_factor = pool_state[pool_strings.reserve_factor]
-        self.flash_loan_fee = pool_state[pool_strings.flash_loan_fee]
-        self.max_flash_loan_ratio = pool_state[pool_strings.max_flash_loan_ratio]
-
-        # refresh state
-        self.refresh_state()
+        # if application id has been set, then either nanoswap pool or vanilla pool is active
+        if self.application_id:
+            self.address = get_application_address(self.application_id)
+            # get global state
+            pool_state = get_application_global_state(self.algod, self.application_id)
+            self.lp_asset_id = pool_state[pool_strings.lp_id]
+            self.admin = pool_state[pool_strings.admin]
+            self.reserve_factor = pool_state[pool_strings.reserve_factor]
+            self.flash_loan_fee = pool_state[pool_strings.flash_loan_fee]
+            self.max_flash_loan_ratio = pool_state[pool_strings.max_flash_loan_ratio]
+            # refresh state
+            self.refresh_state()
 
     def refresh_metadata(self):
-        """Refresh the metadata of the pool (e.g. if now initialized)
+        """Refresh the metadata of the pool (e.g. if now initialized).
+        Can only refresh metadata of vanilla pools.
         """
 
-        # don't need to check logic sigs for nanoswap
-        if self.pool_type != PoolType.NANOSWAP:
+        if pool_type != PoolType.NANOSWAP:
             logic_sig_local_state = get_application_local_state(self.algod, self.logic_sig.address(), self.manager_application_id)
             if logic_sig_local_state:
                 self.pool_status = PoolStatus.ACTIVE
             else:
                 self.pool_status = PoolStatus.UNINITIALIZED
-                raise Exception("Pool is not created or uninitialized")
 
-            if (logic_sig_local_state[manager_strings.registered_asset_1_id] != self.asset1.asset_id) or \
-                    (logic_sig_local_state[manager_strings.registered_asset_2_id] != self.asset2.asset_id) or \
-                    (logic_sig_local_state[manager_strings.validator_index] != self.validator_index):
-                raise Exception("Logic sig state does not match as expected")
-            self.application_id = logic_sig_local_state[manager_strings.registered_pool_id]
+            if logic_sig_local_state:
 
-        self.address = get_application_address(self.application_id)
+                if (logic_sig_local_state[manager_strings.registered_asset_1_id] != asset1.asset_id) or \
+                (logic_sig_local_state[manager_strings.registered_asset_2_id] != asset2.asset_id) or \
+                (logic_sig_local_state[manager_strings.validator_index] != self.validator_index):
+                    raise Exception("Logic sig state does not match as expected")
+                
+                self.application_id = logic_sig_local_state[manager_strings.registered_pool_id]
 
-        # get global state
-        pool_state = get_application_global_state(self.algod, self.application_id)
-        self.lp_asset_id = pool_state[pool_strings.lp_id]
-        self.admin = pool_state[pool_strings.admin]
-        self.reserve_factor = pool_state[pool_strings.reserve_factor]
-        self.flash_loan_fee = pool_state[pool_strings.flash_loan_fee]
-        self.max_flash_loan_ratio = pool_state[pool_strings.max_flash_loan_ratio]
+                self.address = get_application_address(self.application_id)
+                # get global state
+                pool_state = get_application_global_state(self.algod, self.application_id)
+                self.lp_asset_id = pool_state[pool_strings.lp_id]
+                self.admin = pool_state[pool_strings.admin]
+                self.reserve_factor = pool_state[pool_strings.reserve_factor]
+                self.flash_loan_fee = pool_state[pool_strings.flash_loan_fee]
+                self.max_flash_loan_ratio = pool_state[pool_strings.max_flash_loan_ratio]
 
     def refresh_state(self):
         """Refresh the global state of the pool
