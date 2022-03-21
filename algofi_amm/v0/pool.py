@@ -53,6 +53,8 @@ class Pool:
         self.validator_index = get_validator_index(network, pool_type)
         self.swap_fee = get_swap_fee(pool_type)
 
+        self.application_id = None
+        
         if pool_type == PoolType.NANOSWAP:
             if self.network == Network.TESTNET:
                 self.nanoswap_pools = self.testnet_nanoswap_pools
